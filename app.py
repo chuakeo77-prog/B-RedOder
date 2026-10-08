@@ -2485,11 +2485,11 @@ elif menu == "⚙️ Tài khoản Admin":
     )
 
     st.write(
-        f"👤 **Username:** {B-Red_Oder}"
+        f"👤 **Username:** {ADMIN_USERNAME}"
     )
 
     st.write(
-        "🔐 **Mật khẩu:** 123456"
+        "🔐 **Mật khẩu:** ********"
     )
 
     st.info(
@@ -2541,4 +2541,3 @@ st.sidebar.caption(
     "Order • Tính bill • Quản lý món • Admin"
 )
 ```
-
