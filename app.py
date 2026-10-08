@@ -671,14 +671,81 @@ if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
 
-if "editing_order_id" not in st.session_state:
+if "editing_cart_index" not in st.session_state:
 
-    st.session_state.editing_order_id = None
+    st.session_state.editing_cart_index = None
 
 
-if "last_paid_order_id" not in st.session_state:
+# ============================================================
+# HÀM LỊCH SỬ HÓA ĐƠN
+# ============================================================
 
-    st.session_state.last_paid_order_id = None
+def load_order_history():
+
+    if not os.path.exists(ORDER_HISTORY_FILE):
+        return []
+
+    try:
+        with open(ORDER_HISTORY_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def save_order_history(history):
+
+    with open(ORDER_HISTORY_FILE, "w", encoding="utf-8") as file:
+        json.dump(history, file, ensure_ascii=False, indent=4)
+
+
+def make_order_snapshot():
+
+    return {
+        "order_id": st.session_state.order_id,
+        "customer_name": st.session_state.customer_name or "Khách lẻ",
+        "created_at": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "total": calculate_cart_total(),
+        "items": json.loads(json.dumps(st.session_state.cart, ensure_ascii=False)),
+    }
+
+
+def save_current_order_to_history():
+
+    if not st.session_state.cart:
+        return False, "Đơn hàng chưa có món."
+
+    history = load_order_history()
+    snapshot = make_order_snapshot()
+
+    updated = False
+    for index, order in enumerate(history):
+        if str(order.get("order_id")) == str(snapshot["order_id"]):
+            snapshot["created_at"] = order.get("created_at", snapshot["created_at"])
+            history[index] = snapshot
+            updated = True
+            break
+
+    if not updated:
+        history.insert(0, snapshot)
+
+    save_order_history(history)
+    return True, "Đã lưu hóa đơn vào lịch sử."
+
+
+def delete_order_from_history(order_id):
+
+    history = load_order_history()
+    new_history = [
+        order for order in history
+        if str(order.get("order_id")) != str(order_id)
+    ]
+
+    if len(new_history) == len(history):
+        return False
+
+    save_order_history(new_history)
+    return True
 
 
 # ============================================================
@@ -741,110 +808,15 @@ def calculate_cart_total():
 
 
 # ============================================================
-# LỊCH SỬ HÓA ĐƠN / THANH TOÁN
-# ============================================================
-
-def load_order_history():
-
-    if not os.path.exists(ORDER_HISTORY_FILE):
-        return []
-
-    try:
-        with open(ORDER_HISTORY_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            return data if isinstance(data, list) else []
-    except Exception:
-        return []
-
-
-def save_order_history(history):
-
-    with open(ORDER_HISTORY_FILE, "w", encoding="utf-8") as file:
-        json.dump(history, file, ensure_ascii=False, indent=4)
-
-
-def get_order_history():
-    return load_order_history()
-
-
-def find_order_history(order_id):
-    for order in get_order_history():
-        if order.get("order_id") == order_id:
-            return order
-    return None
-
-
-def snapshot_current_order():
-    return {
-        "items": json.loads(json.dumps(st.session_state.cart, ensure_ascii=False)),
-        "customer_name": st.session_state.customer_name or "Khách lẻ",
-        "total": calculate_cart_total(),
-    }
-
-
-def save_paid_order(payment_method="Tiền mặt"):
-    history = get_order_history()
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-    existing = None
-
-    for order in history:
-        if order.get("order_id") == st.session_state.order_id:
-            existing = order
-            break
-
-    snapshot = snapshot_current_order()
-    if existing:
-        existing.update({
-            "items": snapshot["items"],
-            "customer_name": snapshot["customer_name"],
-            "total": snapshot["total"],
-            "payment_method": payment_method,
-            "status": "Đã thanh toán",
-            "updated_at": now,
-        })
-    else:
-        history.append({
-            "order_id": st.session_state.order_id,
-            "created_at": now,
-            "updated_at": now,
-            "customer_name": snapshot["customer_name"],
-            "items": snapshot["items"],
-            "total": snapshot["total"],
-            "payment_method": payment_method,
-            "status": "Đã thanh toán",
-        })
-
-    save_order_history(history)
-    st.session_state.last_paid_order_id = st.session_state.order_id
-    return now
-
-
-def load_order_for_edit(order):
-    st.session_state.order_id = order["order_id"]
-    st.session_state.customer_name = order.get("customer_name", "")
-    st.session_state.cart = json.loads(json.dumps(order.get("items", []), ensure_ascii=False))
-    st.session_state.editing_order_id = order["order_id"]
-
-
-def delete_order_from_history(order_id):
-    history = [o for o in get_order_history() if o.get("order_id") != order_id]
-    save_order_history(history)
-
-
-# ============================================================
 # RESET ĐƠN
 # ============================================================
 
 def reset_order():
 
     st.session_state.cart = []
-
     st.session_state.customer_name = ""
-    st.session_state.editing_order_id = None
-
-    st.session_state.order_id = datetime.now().strftime(
-        "%Y%m%d%H%M%S"
-    )
+    st.session_state.order_id = datetime.now().strftime("%Y%m%d%H%M%S")
+    st.session_state.editing_cart_index = None
 
 
 # ============================================================
@@ -1244,10 +1216,10 @@ if st.session_state.admin_logged_in:
 
     menu_options = [
         "🛒 Đặt hàng",
+        "🧾 Lịch sử hóa đơn",
         "📋 Quản lý danh mục",
         "🍹 Quản lý món",
         "🥤 Quản lý topping",
-        "🧾 Lịch sử hóa đơn",
         "⚙️ Tài khoản Admin"
     ]
 
@@ -1584,7 +1556,17 @@ elif menu == "🛒 Đặt hàng":
                 unsafe_allow_html=True
             )
 
-            _, delete_col = st.columns([6, 1])
+            edit_col, delete_col = st.columns([5, 1])
+
+            with edit_col:
+                if st.button(
+                    "✏️ CHỈNH SỬA MÓN NÀY",
+                    key=f"edit_cart_{index}",
+                    use_container_width=True
+                ):
+                    st.session_state.editing_cart_index = index
+                    st.rerun()
+
             with delete_col:
                 if st.button(
                     "🗑️ Xóa món",
@@ -1592,7 +1574,150 @@ elif menu == "🛒 Đặt hàng":
                     use_container_width=True
                 ):
                     st.session_state.cart.pop(index)
+                    if st.session_state.editing_cart_index == index:
+                        st.session_state.editing_cart_index = None
+                    elif (
+                        st.session_state.editing_cart_index is not None
+                        and st.session_state.editing_cart_index > index
+                    ):
+                        st.session_state.editing_cart_index -= 1
                     st.rerun()
+
+            if st.session_state.editing_cart_index == index:
+                st.markdown(
+                    """
+                    <div class="item-config-card">
+                        <div class="item-config-title">✏️ Chỉnh sửa món trong đơn</div>
+                        <div class="cute-subtitle">Thay đổi size, số lượng, đường, đá, topping hoặc ghi chú rồi bấm lưu.</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                edit_col1, edit_col2, edit_col3 = st.columns(3)
+
+                with edit_col1:
+                    edit_size = st.selectbox(
+                        "🎀 Size",
+                        ["S", "M", "L"],
+                        index=["S", "M", "L"].index(item.get("size", "S"))
+                        if item.get("size", "S") in ["S", "M", "L"] else 0,
+                        key=f"edit_size_{index}"
+                    )
+
+                with edit_col2:
+                    edit_quantity = st.number_input(
+                        "🐻 Số lượng",
+                        min_value=1,
+                        max_value=100,
+                        value=int(item.get("quantity", 1)),
+                        step=1,
+                        key=f"edit_qty_{index}"
+                    )
+
+                with edit_col3:
+                    sugar_options = [100, 70, 50, 30, 10, 0]
+                    edit_sugar = st.selectbox(
+                        "🍬 Đường",
+                        sugar_options,
+                        index=sugar_options.index(item.get("sugar", 100))
+                        if item.get("sugar", 100) in sugar_options else 0,
+                        format_func=lambda value: f"{value}%",
+                        key=f"edit_sugar_{index}"
+                    )
+
+                ice_options = [100, 70, 50, 30, 10, 0]
+                edit_ice = st.selectbox(
+                    "🧊 Đá",
+                    ice_options,
+                    index=ice_options.index(item.get("ice", 100))
+                    if item.get("ice", 100) in ice_options else 0,
+                    format_func=lambda value: f"{value}%",
+                    key=f"edit_ice_{index}"
+                )
+
+                available_toppings = [
+                    topping
+                    for topping in st.session_state.data["toppings"]
+                    if topping.get("visible", True)
+                    and topping.get("status") == "Còn hàng"
+                ]
+
+                topping_options = {
+                    f"{topping['name']} (+{money(topping['price'])})": topping
+                    for topping in available_toppings
+                }
+
+                existing_topping_names = {
+                    topping.get("name") for topping in item.get("toppings", [])
+                }
+
+                default_topping_labels = [
+                    label for label, topping in topping_options.items()
+                    if topping.get("name") in existing_topping_names
+                ]
+
+                edit_topping_labels = st.multiselect(
+                    "🍓 Topping — có thể chọn nhiều",
+                    list(topping_options.keys()),
+                    default=default_topping_labels,
+                    key=f"edit_toppings_{index}"
+                )
+
+                edit_toppings = [
+                    topping_options[label] for label in edit_topping_labels
+                ]
+
+                edit_notes = st.text_area(
+                    "💬 Ghi chú",
+                    value=item.get("notes", ""),
+                    key=f"edit_notes_{index}",
+                    placeholder="Ví dụ: ít ngọt hơn, để riêng topping..."
+                )
+
+                new_size_price = item.get("size_price", 0)
+                for product in st.session_state.data["products"]:
+                    if product.get("name") == item.get("name"):
+                        new_size_price = product.get("sizes", {}).get(edit_size, new_size_price)
+                        break
+
+                new_item = {
+                    "name": item["name"],
+                    "price": item["price"],
+                    "size": edit_size,
+                    "size_price": new_size_price,
+                    "quantity": edit_quantity,
+                    "sugar": edit_sugar,
+                    "ice": edit_ice,
+                    "toppings": edit_toppings,
+                    "notes": edit_notes.strip()
+                }
+
+                st.info(
+                    f"💗 Thành tiền mới: **{money(calculate_item_total(new_item))}**"
+                )
+
+                save_edit_col, cancel_edit_col = st.columns(2)
+
+                with save_edit_col:
+                    if st.button(
+                        "💾 LƯU THAY ĐỔI MÓN",
+                        type="primary",
+                        use_container_width=True,
+                        key=f"save_edit_cart_{index}"
+                    ):
+                        st.session_state.cart[index] = new_item
+                        st.session_state.editing_cart_index = None
+                        st.rerun()
+
+                with cancel_edit_col:
+                    if st.button(
+                        "↩️ HỦY CHỈNH SỬA",
+                        use_container_width=True,
+                        key=f"cancel_edit_cart_{index}"
+                    ):
+                        st.session_state.editing_cart_index = None
+                        st.rerun()
 
         total = calculate_cart_total()
 
@@ -1609,82 +1734,44 @@ elif menu == "🛒 Đặt hàng":
         )
 
         st.divider()
+        st.subheader("💾 LƯU & XUẤT HÓA ĐƠN")
 
-        # --------------------------------------------------------
-        # THANH TOÁN / CẬP NHẬT ĐƠN ĐÃ THANH TOÁN
-        # --------------------------------------------------------
-        st.subheader("💳 THANH TOÁN")
+        save_col, txt_col, html_col, new_col = st.columns(4)
 
-        payment_method = st.selectbox(
-            "💰 Phương thức thanh toán",
-            ["Tiền mặt", "Chuyển khoản", "Ví điện tử", "Thẻ ngân hàng"],
-            key="payment_method_order"
-        )
-
-        if st.session_state.editing_order_id:
-            st.info(
-                f"✏️ Bạn đang chỉnh sửa hóa đơn **{st.session_state.editing_order_id}**. "
-                "Sau khi bấm cập nhật, lịch sử hóa đơn sẽ được thay bằng thông tin mới."
-            )
-
-        pay_col1, pay_col2 = st.columns(2)
-
-        with pay_col1:
+        with save_col:
             if st.button(
-                "💳 CẬP NHẬT / THANH TOÁN HÓA ĐƠN",
+                "💾 LƯU HÓA ĐƠN",
                 type="primary",
                 use_container_width=True,
-                key="pay_and_save_order"
+                key="save_invoice_history"
             ):
-                paid_time = save_paid_order(payment_method)
-                st.success(
-                    f"✅ Hóa đơn {st.session_state.order_id} đã được lưu vào lịch sử lúc {paid_time}."
-                )
-
-        with pay_col2:
-            if st.button(
-                "✏️ SỬA ĐƠN ĐÃ THANH TOÁN",
-                use_container_width=True,
-                key="edit_last_paid_order"
-            ):
-                target_id = st.session_state.last_paid_order_id
-                if not target_id:
-                    history = get_order_history()
-                    target_id = history[-1]["order_id"] if history else None
-                target = find_order_history(target_id) if target_id else None
-                if target:
-                    load_order_for_edit(target)
-                    st.success(f"Đã tải hóa đơn {target['order_id']} để chỉnh sửa.")
-                    st.rerun()
+                saved, message = save_current_order_to_history()
+                if saved:
+                    st.success(message)
                 else:
-                    st.warning("Chưa có hóa đơn đã thanh toán để chỉnh sửa.")
+                    st.error(message)
 
-        st.divider()
-        st.subheader("📤 XUẤT HÓA ĐƠN")
-
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
+        with txt_col:
             txt_data = create_txt_invoice()
             st.download_button(
-                "📄 Tải hóa đơn TXT",
+                "📄 Tải TXT",
                 data=txt_data,
                 file_name=f"hoa_don_{st.session_state.order_id}.txt",
                 mime="text/plain",
                 use_container_width=True
             )
 
-        with col2:
+        with html_col:
             html_data = create_html_invoice()
             st.download_button(
-                "🌐 Tải hóa đơn HTML",
+                "🌐 Tải HTML",
                 data=html_data,
                 file_name=f"hoa_don_{st.session_state.order_id}.html",
                 mime="text/html",
                 use_container_width=True
             )
 
-        with col3:
+        with new_col:
             if st.button(
                 "🗑️ TẠO ĐƠN MỚI",
                 use_container_width=True,
@@ -1692,6 +1779,155 @@ elif menu == "🛒 Đặt hàng":
             ):
                 reset_order()
                 st.rerun()
+
+
+elif menu == "🧾 Lịch sử hóa đơn":
+
+    if not st.session_state.admin_logged_in:
+        st.error("🔒 Bạn phải đăng nhập Admin.")
+        st.stop()
+
+    st.header("🧾 LỊCH SỬ HÓA ĐƠN")
+    st.success("🔓 Chỉ Admin mới có quyền xem, tải và xóa lịch sử hóa đơn.")
+
+    history = load_order_history()
+
+    if not history:
+        st.info("📭 Chưa có hóa đơn nào được lưu. Hãy vào Đặt hàng và bấm \"💾 LƯU HÓA ĐƠN\".")
+    else:
+        total_revenue = sum(float(order.get("total", 0)) for order in history)
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("🧾 Số hóa đơn", len(history))
+        with col2:
+            st.metric("💰 Tổng doanh thu", money(total_revenue))
+        with col3:
+            st.metric("🛍️ Tổng số món", sum(len(order.get("items", [])) for order in history))
+
+        search_text = st.text_input(
+            "🔎 Tìm hóa đơn",
+            placeholder="Nhập mã đơn hoặc tên khách hàng..."
+        ).strip().lower()
+
+        filtered_history = []
+        for order in history:
+            order_id = str(order.get("order_id", ""))
+            customer = str(order.get("customer_name", ""))
+            if not search_text or search_text in order_id.lower() or search_text in customer.lower():
+                filtered_history.append(order)
+
+        st.caption(f"Đang hiển thị {len(filtered_history)} / {len(history)} hóa đơn")
+
+        for order in filtered_history:
+            order_id = str(order.get("order_id", ""))
+            customer = order.get("customer_name", "Khách lẻ")
+            created_at = order.get("created_at", "")
+            total = float(order.get("total", 0))
+            items = order.get("items", [])
+
+            with st.expander(
+                f"🧾 {order_id}  •  👤 {customer}  •  💰 {money(total)}  •  {created_at}"
+            ):
+                for item_index, item in enumerate(items, 1):
+                    toppings = ", ".join(
+                        topping.get("name", "") for topping in item.get("toppings", [])
+                    ) or "Không"
+                    st.markdown(
+                        f"""
+                        <div class="order-card">
+                            <div class="order-title">🧋 {item_index}. {html.escape(str(item.get('name', 'Món')))}</div>
+                            <div class="order-detail">
+                                📏 <b>Size:</b> {item.get('size', 'S')} &nbsp;•&nbsp;
+                                🔢 <b>SL:</b> {item.get('quantity', 1)}<br>
+                                🍬 <b>Đường:</b> {item.get('sugar', 100)}% &nbsp;•&nbsp;
+                                🧊 <b>Đá:</b> {item.get('ice', 100)}%<br>
+                                🧋 <b>Topping:</b> {html.escape(toppings)}<br>
+                                📝 <b>Ghi chú:</b> {html.escape(str(item.get('notes', '') or 'Không'))}<br>
+                                💰 <b>Thành tiền:</b> {money(calculate_item_total(item))}
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
+                    )
+
+                st.markdown(f"### 💰 Tổng thanh toán: **{money(total)}**")
+
+                action_col1, action_col2, action_col3 = st.columns(3)
+
+                invoice_lines = [
+                    "=" * 60,
+                    "                 HÓA ĐƠN TRÀ SỮA",
+                    "=" * 60,
+                    f"Mã đơn: {order_id}",
+                    f"Thời gian: {created_at}",
+                    f"Khách hàng: {customer}",
+                    "-" * 60,
+                ]
+
+                for item_index, item in enumerate(items, 1):
+                    toppings = ", ".join(
+                        topping.get("name", "") for topping in item.get("toppings", [])
+                    ) or "Không"
+                    invoice_lines.extend([
+                        f"{item_index}. {item.get('name', 'Món')} - Size {item.get('size', 'S')}",
+                        f"   Số lượng: {item.get('quantity', 1)}",
+                        f"   Đường: {item.get('sugar', 100)}%",
+                        f"   Đá: {item.get('ice', 100)}%",
+                        f"   Topping: {toppings}",
+                        f"   Ghi chú: {item.get('notes', '') or 'Không'}",
+                        f"   Thành tiền: {money(calculate_item_total(item))}",
+                        "-" * 60,
+                    ])
+
+                invoice_lines.extend([
+                    f"TỔNG THANH TOÁN: {money(total)}",
+                    "=" * 60,
+                    "             Cảm ơn quý khách!",
+                    "=" * 60,
+                ])
+
+                with action_col1:
+                    st.download_button(
+                        "📄 TẢI HÓA ĐƠN",
+                        data="\n".join(invoice_lines).encode("utf-8"),
+                        file_name=f"hoa_don_{order_id}.txt",
+                        mime="text/plain",
+                        use_container_width=True,
+                        key=f"download_history_{order_id}"
+                    )
+
+                with action_col2:
+                    if st.button(
+                        "✏️ SỬA HÓA ĐƠN",
+                        use_container_width=True,
+                        key=f"edit_history_{order_id}"
+                    ):
+                        st.session_state.cart = json.loads(json.dumps(items, ensure_ascii=False))
+                        st.session_state.customer_name = customer if customer != "Khách lẻ" else ""
+                        st.session_state.order_id = order_id
+                        st.session_state.editing_cart_index = None
+                        st.success("Đã đưa hóa đơn vào phần Đặt hàng để chỉnh sửa.")
+                        st.info("Hãy chọn menu 🛒 Đặt hàng ở thanh bên để chỉnh sửa và lưu lại.")
+
+                with action_col3:
+                    if st.button(
+                        "🗑️ XÓA HÓA ĐƠN",
+                        use_container_width=True,
+                        key=f"delete_history_{order_id}"
+                    ):
+                        delete_order_from_history(order_id)
+                        st.success("Đã xóa hóa đơn khỏi lịch sử.")
+                        st.rerun()
+
+        st.divider()
+        if st.button(
+            "🗑️ XÓA TOÀN BỘ LỊCH SỬ HÓA ĐƠN",
+            use_container_width=True,
+            key="delete_all_history"
+        ):
+            save_order_history([])
+            st.success("Đã xóa toàn bộ lịch sử hóa đơn.")
+            st.rerun()
 
 
 elif menu == "📋 Quản lý danh mục":
@@ -2703,152 +2939,6 @@ elif menu == "🥤 Quản lý topping":
 # ============================================================
 # 6. TÀI KHOẢN ADMIN
 # ============================================================
-# ============================================================
-
-elif menu == "🧾 Lịch sử hóa đơn":
-
-    if not st.session_state.admin_logged_in:
-        st.error("🔒 Bạn phải đăng nhập Admin.")
-        st.stop()
-
-    st.header("🧾 LỊCH SỬ HÓA ĐƠN")
-    st.success("🔓 Chỉ Admin mới có quyền xem, chỉnh sửa hoặc xóa lịch sử hóa đơn.")
-
-    history = get_order_history()
-
-    if not history:
-        st.info("📭 Chưa có hóa đơn nào được thanh toán.")
-    else:
-        # Thống kê
-        total_revenue = sum(float(order.get("total", 0)) for order in history)
-        c1, c2, c3 = st.columns(3)
-        c1.metric("🧾 Số hóa đơn", len(history))
-        c2.metric("💰 Tổng doanh thu", money(total_revenue))
-        c3.metric("🟢 Đã thanh toán", sum(1 for order in history if order.get("status") == "Đã thanh toán"))
-
-        st.divider()
-
-        search_text = st.text_input(
-            "🔎 Tìm hóa đơn",
-            placeholder="Nhập mã đơn hoặc tên khách hàng...",
-            key="history_search"
-        ).strip().lower()
-
-        filtered = [
-            order for order in reversed(history)
-            if not search_text
-            or search_text in str(order.get("order_id", "")).lower()
-            or search_text in str(order.get("customer_name", "")).lower()
-        ]
-
-        if not filtered:
-            st.warning("Không tìm thấy hóa đơn phù hợp.")
-        else:
-            for order in filtered:
-                order_id = order.get("order_id", "N/A")
-                customer = order.get("customer_name", "Khách lẻ")
-                total_order = float(order.get("total", 0))
-                status = order.get("status", "Đã thanh toán")
-                created_at = order.get("created_at", "")
-                updated_at = order.get("updated_at", created_at)
-                payment_method = order.get("payment_method", "Tiền mặt")
-                items = order.get("items", [])
-
-                with st.expander(
-                    f"🧾 {order_id} • 👤 {customer} • 💰 {money(total_order)} • {status}",
-                    expanded=False
-                ):
-                    info1, info2, info3 = st.columns(3)
-                    info1.write(f"**Mã đơn:** {order_id}")
-                    info2.write(f"**Ngày tạo:** {created_at}")
-                    info3.write(f"**Cập nhật:** {updated_at}")
-                    st.write(f"**Thanh toán:** {payment_method}")
-
-                    for idx, item in enumerate(items, 1):
-                        item_total = calculate_item_total(item)
-                        toppings_text = ", ".join(
-                            topping.get("name", "") for topping in item.get("toppings", [])
-                        ) or "Không"
-                        st.markdown(
-                            f"- 🧋 **{idx}. {html.escape(item.get('name', 'Món'))}** "
-                            f"| Size {item.get('size', 'S')} | SL {item.get('quantity', 1)} "
-                            f"| Đường {item.get('sugar', 100)}% | Đá {item.get('ice', 100)}% "
-                            f"| Topping: {html.escape(toppings_text)} | **{money(item_total)}**"
-                        )
-
-                    st.markdown(f"### 💰 Tổng: {money(total_order)}")
-
-                    edit_col, delete_col, download_col = st.columns(3)
-
-                    with edit_col:
-                        if st.button(
-                            "✏️ CHỈNH SỬA HÓA ĐƠN",
-                            key=f"admin_edit_history_{order_id}",
-                            use_container_width=True
-                        ):
-                            load_order_for_edit(order)
-                            st.session_state.last_paid_order_id = order_id
-                            st.success(f"Đã tải {order_id} vào phần Đặt hàng để chỉnh sửa.")
-                            st.rerun()
-
-                    with delete_col:
-                        if st.button(
-                            "🗑️ XÓA HÓA ĐƠN",
-                            key=f"admin_delete_history_{order_id}",
-                            use_container_width=True
-                        ):
-                            delete_order_from_history(order_id)
-                            if st.session_state.last_paid_order_id == order_id:
-                                st.session_state.last_paid_order_id = None
-                            st.success(f"Đã xóa hóa đơn {order_id}.")
-                            st.rerun()
-
-                    with download_col:
-                        invoice_lines = [
-                            "=" * 60,
-                            "HÓA ĐƠN TRÀ SỮA",
-                            "=" * 60,
-                            f"Mã đơn: {order_id}",
-                            f"Khách hàng: {customer}",
-                            f"Ngày tạo: {created_at}",
-                            f"Thanh toán: {payment_method}",
-                            "-" * 60,
-                        ]
-                        for idx, item in enumerate(items, 1):
-                            tops = ", ".join(t.get("name", "") for t in item.get("toppings", [])) or "Không"
-                            invoice_lines.extend([
-                                f"{idx}. {item.get('name', 'Món')} - Size {item.get('size', 'S')}",
-                                f"   SL: {item.get('quantity', 1)} | Đường: {item.get('sugar', 100)}% | Đá: {item.get('ice', 100)}%",
-                                f"   Topping: {tops}",
-                                f"   Ghi chú: {item.get('notes', '') or 'Không'}",
-                                f"   Thành tiền: {money(calculate_item_total(item))}",
-                                "-" * 60,
-                            ])
-                        invoice_lines.append(f"TỔNG THANH TOÁN: {money(total_order)}")
-                        st.download_button(
-                            "📥 TẢI HÓA ĐƠN",
-                            data="\n".join(invoice_lines).encode("utf-8"),
-                            file_name=f"hoa_don_{order_id}.txt",
-                            mime="text/plain",
-                            key=f"download_history_{order_id}",
-                            use_container_width=True
-                        )
-
-        st.divider()
-        if st.button(
-            "🗑️ XÓA TOÀN BỘ LỊCH SỬ HÓA ĐƠN",
-            type="secondary",
-            use_container_width=True,
-            key="delete_all_order_history"
-        ):
-            save_order_history([])
-            st.session_state.last_paid_order_id = None
-            st.success("Đã xóa toàn bộ lịch sử hóa đơn.")
-            st.rerun()
-
-
-# ============================================================
-# 6. TÀI KHOẢN ADMIN
 # ============================================================
 
 elif menu == "⚙️ Tài khoản Admin":
