@@ -67,52 +67,76 @@ st.markdown(
     """
 <style>
 /* =========================================================
-   MODERN SLATE & MINIMAL
-   Primary: #2563EB
-   Secondary: #1E3A8A
-   Background: #F8FAFC
+   VIBRANT BERRY & PASSION — CUTE / GEN Z
+   Primary: #E11D48
+   Secondary: #881337
+   Background: #FFF1F2
    Surface: #FFFFFF
-   Text Primary: #0F172A
-   Text Secondary: #475569
+   Text Primary: #111827
+   Text Secondary: #6B7280
    ========================================================= */
 
+:root {
+    --berry: #E11D48;
+    --berry-dark: #881337;
+    --berry-soft: #FFF1F2;
+    --berry-light: #FFE4E6;
+    --berry-border: #FECDD3;
+    --surface: #FFFFFF;
+    --text: #111827;
+    --muted: #6B7280;
+}
+
 .stApp {
-    background: #F8FAFC;
-    color: #0F172A;
+    background: linear-gradient(135deg, #FFF1F2 0%, #FFF8F9 45%, #FFE4E6 100%);
+    color: var(--text);
 }
 
 .main {
-    background: #F8FAFC;
+    background: transparent;
 }
 
 .block-container {
-    max-width: 1320px;
-    padding-top: 1.8rem;
-    padding-bottom: 3rem;
+    max-width: 1380px;
+    padding-top: 1.25rem;
+    padding-bottom: 3.5rem;
 }
 
-h1, h2, h3, h4 {
-    color: #0F172A !important;
-    font-weight: 800 !important;
+/* Tăng độ rõ của chữ */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text) !important;
+    font-weight: 850 !important;
 }
 
 h1 {
     text-align: center;
-    font-size: 2.25rem !important;
-    letter-spacing: -0.5px;
+    font-size: 2.35rem !important;
+    letter-spacing: -0.7px;
 }
 
-h2 { color: #1E3A8A !important; }
-h3 { color: #1E3A8A !important; }
+h2, h3 {
+    color: var(--berry-dark) !important;
+}
 
 p, label, .stMarkdown, .stCaption {
-    color: #475569;
+    color: var(--muted);
+}
+
+/* HEADER */
+.app-header {
+    background: rgba(255,255,255,.96);
+    border: 1px solid var(--berry-border);
+    border-left: 7px solid var(--berry);
+    border-radius: 22px;
+    padding: 22px 26px;
+    margin-bottom: 22px;
+    box-shadow: 0 10px 30px rgba(136,19,55,.08);
 }
 
 /* SIDEBAR */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1E3A8A 0%, #172554 100%);
-    border-right: 1px solid #1E40AF;
+    background: linear-gradient(180deg, #881337 0%, #9F1239 48%, #4C0519 100%);
+    border-right: 1px solid #BE123C;
 }
 
 section[data-testid="stSidebar"] * {
@@ -120,123 +144,160 @@ section[data-testid="stSidebar"] * {
 }
 
 section[data-testid="stSidebar"] .stRadio label {
-    background: rgba(255,255,255,0.08);
-    border-radius: 10px;
-    padding: 8px 10px;
-    margin: 3px 0;
+    background: rgba(255,255,255,.09);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 9px 11px;
+    margin: 4px 0;
+    transition: .15s ease;
 }
 
 section[data-testid="stSidebar"] .stRadio label:hover {
-    background: rgba(37,99,235,0.55);
+    background: rgba(225,29,72,.55);
+    transform: translateX(2px);
 }
 
-/* HEADER */
-.app-header {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-left: 6px solid #2563EB;
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 22px;
-    box-shadow: 0 5px 18px rgba(15,23,42,0.06);
-}
-
-/* CARDS */
-.order-card, .menu-card {
-    background: #FFFFFF;
-    color: #0F172A;
-    padding: 18px;
+/* CUTE ICON / BADGE */
+.cute-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
     border-radius: 14px;
-    border: 1px solid #E2E8F0;
+    background: linear-gradient(135deg, #FFE4E6, #FFF1F2);
+    border: 1px solid #FECDD3;
+    box-shadow: 0 5px 12px rgba(225,29,72,.12);
+    font-size: 24px;
+    vertical-align: middle;
+    margin-right: 9px;
+}
+
+.cute-title {
+    display: flex;
+    align-items: center;
+    color: var(--berry-dark);
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.cute-subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ORDER BUILDER */
+.order-builder {
+    background: rgba(255,255,255,.97);
+    border: 1px solid var(--berry-border);
+    border-top: 5px solid var(--berry);
+    border-radius: 20px;
+    padding: 22px;
+    margin: 12px 0 20px;
+    box-shadow: 0 10px 28px rgba(136,19,55,.08);
+}
+
+.builder-title {
+    color: var(--berry-dark);
+    font-size: 21px;
+    font-weight: 900;
+}
+
+.item-config-card {
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFF8F9 100%);
+    border: 1px solid var(--berry-border);
+    border-left: 5px solid var(--berry);
+    border-radius: 18px;
+    padding: 16px;
+    margin: 13px 0 4px;
+    box-shadow: 0 6px 18px rgba(225,29,72,.07);
+}
+
+.item-config-title {
+    color: var(--text);
+    font-weight: 900;
+    font-size: 18px;
+}
+
+/* ORDER CARDS */
+.order-card, .menu-card {
+    background: var(--surface);
+    color: var(--text);
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid var(--berry-border);
     margin-bottom: 14px;
-    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+    box-shadow: 0 6px 20px rgba(17,24,39,.06);
 }
 
 .order-card:hover, .menu-card:hover {
-    border-color: #BFDBFE;
-    box-shadow: 0 6px 18px rgba(37,99,235,0.09);
+    border-color: #FB7185;
+    box-shadow: 0 9px 24px rgba(225,29,72,.11);
 }
 
 .order-title {
     font-size: 19px;
-    font-weight: 800;
-    color: #1E3A8A;
+    font-weight: 900;
+    color: var(--berry-dark);
     margin-bottom: 8px;
 }
 
 .order-detail {
-    color: #475569;
+    color: var(--muted);
     font-size: 14px;
-    line-height: 1.8;
+    line-height: 1.9;
 }
 
-.order-detail b { color: #0F172A; }
-
-/* ORDER BUILDER */
-.order-builder {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 16px;
-    padding: 20px;
-    margin: 12px 0 20px;
-    box-shadow: 0 5px 18px rgba(15,23,42,0.05);
-}
-
-.builder-title {
-    color: #1E3A8A;
-    font-size: 20px;
-    font-weight: 800;
-    margin-bottom: 4px;
-}
-
-.item-config-card {
-    background: #F8FAFC;
-    border: 1px solid #E2E8F0;
-    border-radius: 14px;
-    padding: 15px;
-    margin: 12px 0;
-}
-
-.item-config-title {
-    color: #0F172A;
-    font-weight: 800;
-    font-size: 17px;
-}
+.order-detail b { color: var(--text); }
 
 /* TOTAL */
 .total-box {
-    background: #FFFFFF;
-    padding: 22px;
-    border-radius: 16px;
-    border: 2px solid #2563EB;
+    background: linear-gradient(135deg, #FFFFFF 0%, #FFF1F2 100%);
+    padding: 23px;
+    border-radius: 20px;
+    border: 2px solid var(--berry);
     text-align: center;
     margin-top: 18px;
-    box-shadow: 0 7px 22px rgba(37,99,235,0.10);
+    box-shadow: 0 9px 25px rgba(225,29,72,.12);
 }
 
 .total-money {
-    font-size: 30px;
-    font-weight: 900;
-    color: #2563EB;
+    font-size: 32px;
+    font-weight: 950;
+    color: var(--berry);
+    margin: 6px 0;
 }
 
-/* ADMIN / LOGIN */
-.admin-box {
-    background: #FFFFFF;
-    border: 1px solid #CBD5E1;
-    border-top: 4px solid #1E3A8A;
-    border-radius: 16px;
-    padding: 25px;
-    margin: 20px auto;
-    max-width: 720px;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.07);
+/* PRICE + BADGES */
+.price-text {
+    color: var(--berry);
+    font-size: 18px;
+    font-weight: 900;
 }
 
-.login-title {
-    text-align: center;
-    font-size: 28px;
-    font-weight: 900;
-    color: #1E3A8A;
+.badge-blue {
+    display: inline-block;
+    background: #FFE4E6;
+    color: #9F1239 !important;
+    border: 1px solid #FDA4AF;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-weight: 850;
+    font-size: 13px;
+}
+
+.badge-cute {
+    display: inline-block;
+    background: #FFF1F2;
+    color: #881337 !important;
+    border: 1px solid #FECDD3;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 800;
+    margin: 2px;
 }
 
 /* INPUTS */
@@ -246,93 +307,113 @@ section[data-testid="stSidebar"] .stRadio label:hover {
 .stSelectbox div[data-baseweb="select"] > div,
 .stMultiSelect div[data-baseweb="select"] > div {
     background: #FFFFFF !important;
-    color: #0F172A !important;
-    border-color: #CBD5E1 !important;
+    color: var(--text) !important;
+    border: 1px solid #D1D5DB !important;
+    border-radius: 11px !important;
+}
+
+.stTextInput input::placeholder,
+.stTextArea textarea::placeholder {
+    color: #9CA3AF !important;
 }
 
 .stTextInput input:focus,
 .stNumberInput input:focus,
 .stTextArea textarea:focus {
-    border-color: #2563EB !important;
-    box-shadow: 0 0 0 1px #2563EB !important;
+    border-color: var(--berry) !important;
+    box-shadow: 0 0 0 2px rgba(225,29,72,.12) !important;
+}
+
+/* DROPDOWN / MULTISELECT TEXT */
+div[data-baseweb="select"] * {
+    color: var(--text) !important;
 }
 
 /* BUTTONS */
 .stButton > button,
 .stDownloadButton > button,
 .stFormSubmitButton > button {
-    border-radius: 10px !important;
-    border: 1px solid #2563EB !important;
-    font-weight: 700 !important;
-    transition: all .15s ease;
+    border-radius: 12px !important;
+    border: 1px solid var(--berry) !important;
+    font-weight: 850 !important;
+    min-height: 42px;
+    transition: all .16s ease;
 }
 
 .stButton > button[kind="primary"],
 .stFormSubmitButton > button[kind="primary"] {
-    background: #2563EB !important;
+    background: linear-gradient(135deg, #E11D48, #BE123C) !important;
     color: #FFFFFF !important;
+    box-shadow: 0 5px 14px rgba(225,29,72,.22);
 }
 
 .stButton > button[kind="primary"]:hover,
 .stFormSubmitButton > button[kind="primary"]:hover {
-    background: #1D4ED8 !important;
-    border-color: #1D4ED8 !important;
+    background: linear-gradient(135deg, #BE123C, #9F1239) !important;
+    transform: translateY(-1px);
 }
 
 .stDownloadButton > button {
     background: #FFFFFF !important;
-    color: #1E3A8A !important;
+    color: var(--berry-dark) !important;
 }
 
 .stDownloadButton > button:hover {
-    background: #EFF6FF !important;
+    background: #FFF1F2 !important;
 }
 
 /* ALERTS */
 div[data-testid="stAlert"] {
-    border-radius: 10px;
-    border: 1px solid #CBD5E1;
+    border-radius: 13px;
+    border: 1px solid var(--berry-border);
 }
 
-/* EXPANDER / CONTAINER */
+/* EXPANDER / CONTAINERS */
 div[data-testid="stExpander"] {
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: 12px;
+    border: 1px solid var(--berry-border);
+    border-radius: 14px;
 }
 
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    border-color: #E2E8F0 !important;
-    border-radius: 12px !important;
+    border-color: var(--berry-border) !important;
+    border-radius: 14px !important;
+    background: #FFFFFF;
 }
 
-hr {
-    border-color: #E2E8F0 !important;
+hr { border-color: #FECDD3 !important; }
+
+/* CHECKBOX / RADIO ACCENT */
+.stRadio [data-baseweb="radio"] div:first-child,
+.stCheckbox [data-baseweb="checkbox"] div:first-child {
+    accent-color: var(--berry);
 }
 
-.price-text {
-    color: #2563EB;
-    font-size: 18px;
-    font-weight: 800;
+/* ADMIN / LOGIN */
+.admin-box {
+    background: #FFFFFF;
+    border: 1px solid var(--berry-border);
+    border-top: 5px solid var(--berry-dark);
+    border-radius: 18px;
+    padding: 25px;
+    margin: 20px auto;
+    max-width: 720px;
+    box-shadow: 0 10px 28px rgba(136,19,55,.08);
 }
 
-.badge-blue {
-    display: inline-block;
-    background: #EFF6FF;
-    color: #1D4ED8;
-    border: 1px solid #BFDBFE;
-    padding: 4px 9px;
-    border-radius: 999px;
-    font-weight: 700;
-    font-size: 13px;
+.login-title {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 950;
+    color: var(--berry-dark);
 }
 
 @media (max-width: 768px) {
     .block-container { padding-left: 1rem; padding-right: 1rem; }
-    h1 { font-size: 1.75rem !important; }
-    .total-money { font-size: 25px; }
+    h1 { font-size: 1.8rem !important; }
+    .total-money { font-size: 26px; }
+    .order-builder { padding: 15px; }
 }
-
 </style>
 """,
     unsafe_allow_html=True
@@ -1117,17 +1198,22 @@ if menu == "🔐 Đăng nhập Admin":
 
 elif menu == "🛒 Đặt hàng":
 
-    st.header("🛒 TẠO ĐƠN HÀNG")
+    st.header("💗 TẠO ĐƠN HÀNG")
 
     # --------------------------------------------------------
     # THÔNG TIN KHÁCH HÀNG
     # --------------------------------------------------------
     customer_name = st.text_input(
-        "👤 Tên khách hàng",
+        "🐰 Tên khách hàng",
         value=st.session_state.customer_name,
         placeholder="Nhập tên khách hàng..."
     )
     st.session_state.customer_name = customer_name
+
+    st.markdown(
+        "<div class='badge-cute'>🌷 Chọn món yêu thích • Tùy chỉnh theo gu • Order thật cute ✨</div>",
+        unsafe_allow_html=True
+    )
 
     # --------------------------------------------------------
     # BỘ TẠO ĐƠN NHIỀU MÓN
@@ -1135,8 +1221,8 @@ elif menu == "🛒 Đặt hàng":
     st.markdown(
         """
         <div class="order-builder">
-            <div class="builder-title">🛍️ Chọn nhiều món trong một lần Order</div>
-            <div style="color:#475569;">Có thể chọn nhiều danh mục và nhiều món cùng lúc. Sau đó cấu hình riêng cho từng món.</div>
+            <div class="cute-title"><span class="cute-icon">🧋</span>Chọn nhiều món trong một lần Order 💕</div>
+            <div class="cute-subtitle">Có thể chọn nhiều danh mục và nhiều món cùng lúc. Sau đó cấu hình riêng cho từng món 💕</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -1152,7 +1238,7 @@ elif menu == "🛒 Đặt hàng":
         st.warning("Hiện chưa có danh mục đang hiển thị.")
     else:
         selected_categories = st.multiselect(
-            "📂 Danh mục — có thể chọn nhiều",
+            "🩷 Danh mục — chọn nhiều",
             visible_categories,
             default=[visible_categories[0]],
             help="Chọn một hoặc nhiều danh mục để hiển thị các món tương ứng."
@@ -1177,7 +1263,7 @@ elif menu == "🛒 Đặt hàng":
             label_to_product = dict(zip(product_labels, available_products))
 
             selected_product_labels = st.multiselect(
-                "🧋 Chọn món — có thể chọn nhiều món",
+                "🌸 Chọn món — có thể chọn nhiều món",
                 product_labels,
                 help="Bạn có thể chọn 2, 3, 5... món trong cùng một lần Order."
             )
@@ -1200,7 +1286,7 @@ elif menu == "🛒 Đặt hàng":
                         f"""
                         <div class="item-config-card">
                             <div class="item-config-title">🧋 {product_index + 1}. {html.escape(product['name'])}</div>
-                            <div style="color:#475569; margin-top:4px;">{html.escape(product.get('description', '') or 'Không có mô tả')}</div>
+                            <div class="cute-subtitle" style="margin-top:4px;">{html.escape(product.get('description', '') or 'Không có mô tả')}</div>
                         </div>
                         """,
                         unsafe_allow_html=True
@@ -1222,7 +1308,7 @@ elif menu == "🛒 Đặt hàng":
 
                     with config_col:
                         size = st.radio(
-                            "📏 Size",
+                            "🎀 Size",
                             ["S", "M", "L"],
                             horizontal=True,
                             key=f"multi_size_{product['id']}"
@@ -1235,7 +1321,7 @@ elif menu == "🛒 Đặt hàng":
 
                         with c1:
                             quantity = st.number_input(
-                                "🔢 Số lượng",
+                                "🐻 Số lượng",
                                 min_value=1,
                                 max_value=100,
                                 value=1,
@@ -1274,7 +1360,7 @@ elif menu == "🛒 Đặt hàng":
                         }
 
                         selected_topping_labels = st.multiselect(
-                            "🧋 Topping — có thể chọn nhiều",
+                            "🍓 Topping — có thể chọn nhiều",
                             list(topping_options.keys()),
                             key=f"multi_toppings_{product['id']}"
                         )
@@ -1292,13 +1378,13 @@ elif menu == "🛒 Đặt hàng":
                         ]
 
                         selected_notes = st.multiselect(
-                            "📝 Ghi chú nhanh",
+                            "💌 Ghi chú nhanh",
                             notes_options,
                             key=f"multi_notes_{product['id']}"
                         )
 
                         custom_note = st.text_input(
-                            "Ghi chú riêng",
+                            "💬 Ghi chú riêng",
                             placeholder="Ví dụ: ít ngọt hơn, để riêng topping...",
                             key=f"multi_custom_note_{product['id']}"
                         )
@@ -1323,7 +1409,7 @@ elif menu == "🛒 Đặt hàng":
                     configured_items.append(preview_item)
 
                     st.info(
-                        f"💰 {product['name']} • {quantity} ly • Thành tiền: **{money(preview_total)}**"
+                        f"💗 {product['name']} • {quantity} ly • Thành tiền: **{money(preview_total)}**"
                     )
                     st.divider()
 
@@ -1347,7 +1433,7 @@ elif menu == "🛒 Đặt hàng":
                 )
 
                 if st.button(
-                    f"➕ THÊM TẤT CẢ {len(configured_items)} MÓN VÀO ĐƠN",
+                    f"🛒 THÊM TẤT CẢ {len(configured_items)} MÓN VÀO ĐƠN 💕",
                     type="primary",
                     use_container_width=True,
                     key="add_all_selected_products"
@@ -1364,7 +1450,7 @@ elif menu == "🛒 Đặt hàng":
     # CHI TIẾT ĐƠN HÀNG
     # ========================================================
     st.divider()
-    st.header("🧾 CHI TIẾT ĐƠN HÀNG")
+    st.header("🧾 CHI TIẾT ĐƠN HÀNG 💗")
 
     if not st.session_state.cart:
         st.info("Chưa có món trong đơn. Hãy chọn nhiều món ở khu vực phía trên.")
@@ -1397,7 +1483,7 @@ elif menu == "🛒 Đặt hàng":
             _, delete_col = st.columns([6, 1])
             with delete_col:
                 if st.button(
-                    "🗑️ Xóa",
+                    "🗑️ Xóa món",
                     key=f"delete_cart_{index}",
                     use_container_width=True
                 ):
