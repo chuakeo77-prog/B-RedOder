@@ -23,7 +23,7 @@ st.set_page_config(
 if os.path.exists("logo.jpg"):
     logo_col_left, logo_col, logo_col_right = st.columns([1, 2, 1])
     with logo_col:
-        st.image("logo.jpg.jpg", use_container_width=True)
+        st.image("logo.jpg", use_container_width=True)
 
 DATA_FILE = "menu_data.json"
 ORDER_HISTORY_FILE = "order_history.json"
