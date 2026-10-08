@@ -67,88 +67,369 @@ st.markdown(
     """
 <style>
 
+/* =========================================================
+   GIAO DIỆN TỔNG THỂ
+   ========================================================= */
+
 .stApp {
-    background-color: #fff8f5;
+    background: linear-gradient(135deg, #FFF8F0 0%, #FFFDF9 48%, #F8F1E8 100%);
+    color: #2F241F;
 }
 
 .main {
-    background-color: #fff8f5;
+    background: transparent;
 }
 
-h1, h2, h3 {
-    color: #8B4513;
+/* Khu vực nội dung */
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1250px;
 }
 
-.order-card {
-    background: white;
-    padding: 18px;
-    border-radius: 15px;
-    border: 1px solid #ead8cf;
-    margin-bottom: 15px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.06);
+/* Tiêu đề */
+h1, h2, h3, h4 {
+    color: #5A2E18 !important;
+    font-weight: 800 !important;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.35rem !important;
+    margin-bottom: 0.3rem !important;
+}
+
+h2 {
+    margin-top: 1rem !important;
+}
+
+h3 {
+    color: #7A3E20 !important;
+}
+
+p, label, .stMarkdown, .stCaption {
+    color: #352923;
+}
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #4B2414 0%, #6B341B 55%, #8B4513 100%);
+    border-right: 3px solid #D99A5B;
+}
+
+section[data-testid="stSidebar"] * {
+    color: #FFF8EF !important;
+}
+
+section[data-testid="stSidebar"] .stRadio label {
+    background: rgba(255,255,255,0.10);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin: 3px 0;
+}
+
+section[data-testid="stSidebar"] .stRadio label:hover {
+    background: rgba(255,255,255,0.20);
+}
+
+section[data-testid="stSidebar"] [data-testid="stAlert"] {
+    background: rgba(255,255,255,0.13);
+    border: 1px solid rgba(255,255,255,0.25);
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.app-header {
+    background: linear-gradient(135deg, #6B341B, #A0522D);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 22px;
+    margin-bottom: 22px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(91, 45, 24, 0.18);
+}
+
+.app-header h1 {
+    color: white !important;
+    margin: 0 !important;
+}
+
+.app-header p {
+    color: #FFF5E9 !important;
+    margin: 8px 0 0;
+    font-size: 1rem;
+}
+
+/* =========================================================
+   CARD MÓN / ĐƠN HÀNG
+   ========================================================= */
+
+.order-card,
+.menu-card {
+    background: #FFFFFF;
+    color: #2F241F;
+    padding: 20px;
+    border-radius: 18px;
+    border: 2px solid #E8D4C4;
+    margin-bottom: 16px;
+    box-shadow: 0 5px 18px rgba(79, 42, 24, 0.09);
+}
+
+.order-card:hover,
+.menu-card:hover {
+    border-color: #C98A5B;
+    box-shadow: 0 8px 24px rgba(79, 42, 24, 0.14);
 }
 
 .order-title {
     font-size: 21px;
-    font-weight: bold;
-    color: #8B4513;
+    font-weight: 800;
+    color: #6B341B !important;
+    margin-bottom: 10px;
 }
 
 .order-detail {
     font-size: 15px;
-    line-height: 1.8;
-}
-
-.total-box {
-    background: #fff0e8;
-    padding: 20px;
-    border-radius: 15px;
-    border: 2px solid #d2691e;
-    text-align: center;
-    margin-top: 15px;
-}
-
-.total-money {
-    font-size: 30px;
-    font-weight: bold;
-    color: #d35400;
-}
-
-.admin-box {
-    background: #fff;
-    border: 2px solid #8B4513;
-    border-radius: 15px;
-    padding: 25px;
-    margin-top: 20px;
-    margin-bottom: 20px;
-}
-
-.admin-success {
-    background: #e8f5e9;
-    border: 1px solid #81c784;
-    padding: 12px;
-    border-radius: 10px;
-}
-
-.menu-card {
-    background: white;
-    border-radius: 15px;
-    padding: 15px;
-    border: 1px solid #ead8cf;
-    margin-bottom: 12px;
+    line-height: 1.9;
+    color: #3D3029 !important;
 }
 
 .price-text {
-    color: #d35400;
-    font-size: 18px;
-    font-weight: bold;
+    color: #C45120 !important;
+    font-size: 20px;
+    font-weight: 800;
+}
+
+/* =========================================================
+   TỔNG TIỀN
+   ========================================================= */
+
+.total-box {
+    background: linear-gradient(135deg, #FFF0D9 0%, #FFE4C4 100%);
+    color: #4B2818;
+    padding: 25px;
+    border-radius: 20px;
+    border: 3px solid #D2691E;
+    text-align: center;
+    margin-top: 18px;
+    box-shadow: 0 8px 24px rgba(176, 91, 31, 0.16);
+}
+
+.total-money {
+    font-size: 34px;
+    font-weight: 900;
+    color: #B83B08 !important;
+    margin: 10px 0;
+}
+
+/* =========================================================
+   ADMIN / LOGIN
+   ========================================================= */
+
+.admin-box {
+    background: #FFFFFF;
+    color: #2F241F;
+    border: 3px solid #8B4513;
+    border-radius: 20px;
+    padding: 30px;
+    margin: 22px auto;
+    max-width: 720px;
+    box-shadow: 0 10px 30px rgba(91, 45, 24, 0.14);
 }
 
 .login-title {
     text-align: center;
     font-size: 30px;
-    font-weight: bold;
-    color: #8B4513;
+    font-weight: 900;
+    color: #6B341B !important;
+    margin-bottom: 15px;
+}
+
+.admin-success {
+    background: #EAF7EA;
+    color: #205B25;
+    border: 1px solid #75B879;
+    padding: 13px;
+    border-radius: 10px;
+}
+
+/* =========================================================
+   STREAMLIT INPUT - LÀM NỔI BẬT
+   ========================================================= */
+
+div[data-baseweb="input"],
+div[data-baseweb="select"],
+div[data-baseweb="textarea"] {
+    background-color: #FFFFFF !important;
+    border-radius: 10px !important;
+}
+
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div,
+div[data-baseweb="textarea"] > div {
+    background-color: #FFFFFF !important;
+    border: 1px solid #CDB7A6 !important;
+    border-radius: 10px !important;
+}
+
+div[data-baseweb="input"] input,
+div[data-baseweb="textarea"] textarea {
+    color: #241B17 !important;
+    background-color: #FFFFFF !important;
+    font-weight: 500 !important;
+}
+
+div[data-baseweb="select"] * {
+    color: #241B17 !important;
+}
+
+div[data-baseweb="input"]:focus-within > div,
+div[data-baseweb="select"]:focus-within > div,
+div[data-baseweb="textarea"]:focus-within > div {
+    border: 2px solid #C7652C !important;
+    box-shadow: 0 0 0 2px rgba(199,101,44,0.12);
+}
+
+/* Label của input */
+.stTextInput label,
+.stNumberInput label,
+.stSelectbox label,
+.stMultiSelect label,
+.stTextArea label,
+.stRadio label {
+    color: #4A3023 !important;
+    font-weight: 700 !important;
+}
+
+/* =========================================================
+   BUTTON
+   ========================================================= */
+
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 11px !important;
+    min-height: 44px;
+    font-weight: 800 !important;
+    border: 1px solid #B96738 !important;
+    background: #FFF7EF !important;
+    color: #6B341B !important;
+    transition: all 0.2s ease;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background: #8B4513 !important;
+    color: white !important;
+    border-color: #8B4513 !important;
+    transform: translateY(-1px);
+    box-shadow: 0 5px 12px rgba(91,45,24,0.18);
+}
+
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #8B4513, #C7652C) !important;
+    color: white !important;
+    border: none !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: linear-gradient(135deg, #6B341B, #A64B20) !important;
+}
+
+/* =========================================================
+   ALERT / INFO / SUCCESS / WARNING
+   ========================================================= */
+
+div[data-testid="stAlert"] {
+    border-radius: 12px !important;
+    font-weight: 600;
+}
+
+div[data-testid="stAlert"][kind="info"] {
+    background: #EEF6FF;
+}
+
+div[data-testid="stAlert"][kind="success"] {
+    background: #EDF9EF;
+}
+
+div[data-testid="stAlert"][kind="warning"] {
+    background: #FFF8E6;
+}
+
+div[data-testid="stAlert"][kind="error"] {
+    background: #FFF0F0;
+}
+
+/* =========================================================
+   EXPANDER / CONTAINER
+   ========================================================= */
+
+div[data-testid="stExpander"] {
+    background: #FFFFFF;
+    border: 2px solid #E5D2C3;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+div[data-testid="stExpander"] summary {
+    background: #FFF8F1;
+    color: #5A2E18 !important;
+    font-weight: 800;
+}
+
+/* Container có border */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #FFFFFF;
+    border-color: #E3CDBB !important;
+    border-radius: 15px;
+}
+
+/* =========================================================
+   DIVIDER
+   ========================================================= */
+
+hr {
+    border: none !important;
+    border-top: 2px solid #E6D3C3 !important;
+    margin: 22px 0 !important;
+}
+
+/* =========================================================
+   TABLE / DATAFRAME
+   ========================================================= */
+
+[data-testid="stDataFrame"] {
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.75rem !important;
+    }
+
+    .app-header {
+        padding: 20px 15px;
+    }
+
+    .order-card,
+    .menu-card,
+    .admin-box {
+        padding: 15px;
+    }
+
+    .total-money {
+        font-size: 27px;
+    }
 }
 
 </style>
