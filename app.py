@@ -16,6 +16,15 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# ============================================================
+# LOGO TRANG
+# ============================================================
+# Đặt file logo.jpg cùng thư mục với app.py khi đưa lên GitHub/Streamlit Cloud.
+if os.path.exists("logo.jpg"):
+    logo_col_left, logo_col, logo_col_right = st.columns([1, 2, 1])
+    with logo_col:
+        st.image("logo.jpg", use_container_width=True)
+
 DATA_FILE = "menu_data.json"
 ORDER_HISTORY_FILE = "order_history.json"
 
