@@ -15,7 +15,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-st.image("logo.jpg")
+if os.path.exists("logo.jpg"):
+    logo_col1, logo_col2, logo_col3 = st.columns([1, 2, 1])
+    with logo_col2:
+        st.image("logo.jpg", width=250)
 DATA_FILE = "menu_data.json"
 ORDER_HISTORY_FILE = "order_history.json"
 
