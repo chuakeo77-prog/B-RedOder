@@ -1,34 +1,77 @@
 import streamlit as st
 from datetime import datetime
-from io import BytesIO
 import json
 import os
-import base64
+import html
+import hashlib
 
 # ============================================================
-# CẤU HÌNH
+# CẤU HÌNH TRANG
 # ============================================================
 
 st.set_page_config(
     page_title="Order & Bill Trà Sữa",
     page_icon="🧋",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 DATA_FILE = "menu_data.json"
 
+
 # ============================================================
-# CSS GIAO DIỆN
+# CẤU HÌNH ADMIN
+# ============================================================
+#
+# Ưu tiên lấy mật khẩu từ Streamlit Secrets.
+#
+# Khi deploy Streamlit Cloud:
+#
+# [admin]
+# username = "admin"
+# password = "123456"
+#
+# Nếu chưa cấu hình Secrets:
+# Username mặc định: admin
+# Password mặc định: 123456
+#
 # ============================================================
 
-st.markdown("""
+DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_PASSWORD = "123456"
+
+
+def get_admin_username():
+    try:
+        return st.secrets["admin"]["username"]
+    except Exception:
+        return DEFAULT_ADMIN_USERNAME
+
+
+def get_admin_password():
+    try:
+        return st.secrets["admin"]["password"]
+    except Exception:
+        return DEFAULT_ADMIN_PASSWORD
+
+
+ADMIN_USERNAME = get_admin_username()
+ADMIN_PASSWORD = get_admin_password()
+
+
+# ============================================================
+# CSS
+# ============================================================
+
+st.markdown(
+    """
 <style>
 
-.main {
+.stApp {
     background-color: #fff8f5;
 }
 
-.stApp {
+.main {
     background-color: #fff8f5;
 }
 
@@ -53,7 +96,7 @@ h1, h2, h3 {
 
 .order-detail {
     font-size: 15px;
-    line-height: 1.7;
+    line-height: 1.8;
 }
 
 .total-box {
@@ -62,12 +105,29 @@ h1, h2, h3 {
     border-radius: 15px;
     border: 2px solid #d2691e;
     text-align: center;
+    margin-top: 15px;
 }
 
 .total-money {
     font-size: 30px;
     font-weight: bold;
     color: #d35400;
+}
+
+.admin-box {
+    background: #fff;
+    border: 2px solid #8B4513;
+    border-radius: 15px;
+    padding: 25px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.admin-success {
+    background: #e8f5e9;
+    border: 1px solid #81c784;
+    padding: 12px;
+    border-radius: 10px;
 }
 
 .menu-card {
@@ -78,24 +138,23 @@ h1, h2, h3 {
     margin-bottom: 12px;
 }
 
-.badge-green {
-    background: #d4edda;
-    color: #155724;
-    padding: 5px 10px;
-    border-radius: 10px;
+.price-text {
+    color: #d35400;
+    font-size: 18px;
     font-weight: bold;
 }
 
-.badge-red {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 5px 10px;
-    border-radius: 10px;
+.login-title {
+    text-align: center;
+    font-size: 30px;
     font-weight: bold;
+    color: #8B4513;
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True
+)
 
 
 # ============================================================
@@ -103,25 +162,31 @@ h1, h2, h3 {
 # ============================================================
 
 DEFAULT_DATA = {
+
     "categories": [
+
         {
             "id": 1,
             "name": "Trà sữa",
             "visible": True
         },
+
         {
             "id": 2,
             "name": "Trà trái cây",
             "visible": True
         },
+
         {
             "id": 3,
             "name": "Topping",
             "visible": True
         }
+
     ],
 
     "products": [
+
         {
             "id": 1,
             "category": "Trà sữa",
@@ -136,6 +201,7 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
+
         {
             "id": 2,
             "category": "Trà sữa",
@@ -150,6 +216,7 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
+
         {
             "id": 3,
             "category": "Trà sữa",
@@ -164,6 +231,7 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
+
         {
             "id": 4,
             "category": "Trà sữa",
@@ -178,6 +246,7 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
+
         {
             "id": 5,
             "category": "Trà trái cây",
@@ -192,6 +261,7 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
+
         {
             "id": 6,
             "category": "Trà trái cây",
@@ -206,9 +276,11 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         }
+
     ],
 
     "toppings": [
+
         {
             "id": 1,
             "name": "Trân châu đen",
@@ -216,6 +288,7 @@ DEFAULT_DATA = {
             "status": "Còn hàng",
             "visible": True
         },
+
         {
             "id": 2,
             "name": "Trân châu trắng",
@@ -223,6 +296,7 @@ DEFAULT_DATA = {
             "status": "Còn hàng",
             "visible": True
         },
+
         {
             "id": 3,
             "name": "Thạch trái cây",
@@ -230,6 +304,7 @@ DEFAULT_DATA = {
             "status": "Còn hàng",
             "visible": True
         },
+
         {
             "id": 4,
             "name": "Thạch phô mai",
@@ -237,6 +312,7 @@ DEFAULT_DATA = {
             "status": "Còn hàng",
             "visible": True
         },
+
         {
             "id": 5,
             "name": "Pudding trứng",
@@ -244,22 +320,25 @@ DEFAULT_DATA = {
             "status": "Còn hàng",
             "visible": True
         }
+
     ]
+
 }
 
 
 # ============================================================
-# ĐỌC / LƯU DỮ LIỆU
+# ĐỌC DỮ LIỆU
 # ============================================================
 
 def load_data():
 
     if not os.path.exists(DATA_FILE):
 
-        with open(DATA_FILE, "w", encoding="utf-8") as f:
+        with open(DATA_FILE, "w", encoding="utf-8") as file:
+
             json.dump(
                 DEFAULT_DATA,
-                f,
+                file,
                 ensure_ascii=False,
                 indent=4
             )
@@ -268,20 +347,26 @@ def load_data():
 
     try:
 
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with open(DATA_FILE, "r", encoding="utf-8") as file:
+
+            return json.load(file)
 
     except Exception:
 
         return DEFAULT_DATA
 
 
+# ============================================================
+# LƯU DỮ LIỆU
+# ============================================================
+
 def save_data():
 
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
+    with open(DATA_FILE, "w", encoding="utf-8") as file:
+
         json.dump(
             st.session_state.data,
-            f,
+            file,
             ensure_ascii=False,
             indent=4
         )
@@ -292,20 +377,38 @@ def save_data():
 # ============================================================
 
 if "data" not in st.session_state:
+
     st.session_state.data = load_data()
 
+
 if "cart" not in st.session_state:
+
     st.session_state.cart = []
 
+
 if "customer_name" not in st.session_state:
+
     st.session_state.customer_name = ""
 
+
 if "order_id" not in st.session_state:
-    st.session_state.order_id = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    st.session_state.order_id = datetime.now().strftime(
+        "%Y%m%d%H%M%S"
+    )
 
 
 # ============================================================
-# HÀM TIỆN ÍCH
+# TRẠNG THÁI ADMIN
+# ============================================================
+
+if "admin_logged_in" not in st.session_state:
+
+    st.session_state.admin_logged_in = False
+
+
+# ============================================================
+# HÀM ĐỊNH DẠNG TIỀN
 # ============================================================
 
 def money(value):
@@ -313,21 +416,35 @@ def money(value):
     return f"{value:,.0f} VNĐ".replace(",", ".")
 
 
+# ============================================================
+# ID TỰ ĐỘNG
+# ============================================================
+
 def get_next_id(items):
 
     if not items:
+
         return 1
 
-    return max(item["id"] for item in items) + 1
+    return max(
+        item["id"]
+        for item in items
+    ) + 1
 
+
+# ============================================================
+# TÍNH TIỀN MỘT MÓN
+# ============================================================
 
 def calculate_item_total(item):
 
     product_price = item["price"]
+
     size_price = item["size_price"]
 
     topping_price = sum(
-        topping["price"] for topping in item["toppings"]
+        topping["price"]
+        for topping in item["toppings"]
     )
 
     return (
@@ -337,6 +454,10 @@ def calculate_item_total(item):
     ) * item["quantity"]
 
 
+# ============================================================
+# TÍNH TỔNG BILL
+# ============================================================
+
 def calculate_cart_total():
 
     return sum(
@@ -345,39 +466,142 @@ def calculate_cart_total():
     )
 
 
+# ============================================================
+# RESET ĐƠN
+# ============================================================
+
 def reset_order():
 
     st.session_state.cart = []
+
     st.session_state.customer_name = ""
+
     st.session_state.order_id = datetime.now().strftime(
         "%Y%m%d%H%M%S"
     )
 
 
 # ============================================================
-# XUẤT FILE TXT
+# LOGIN ADMIN
+# ============================================================
+
+def admin_login():
+
+    st.markdown(
+        '<div class="admin-box">',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div class="login-title">🔐 ADMIN LOGIN</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write("")
+
+    st.info(
+        "Khu vực này dành riêng cho quản trị viên."
+    )
+
+    username = st.text_input(
+        "👤 Tên đăng nhập",
+        placeholder="Nhập username..."
+    )
+
+    password = st.text_input(
+        "🔑 Mật khẩu",
+        type="password",
+        placeholder="Nhập mật khẩu..."
+    )
+
+    login_button = st.button(
+        "🔐 ĐĂNG NHẬP ADMIN",
+        type="primary",
+        use_container_width=True
+    )
+
+    if login_button:
+
+        if (
+            username == ADMIN_USERNAME
+            and password == ADMIN_PASSWORD
+        ):
+
+            st.session_state.admin_logged_in = True
+
+            st.success(
+                "Đăng nhập Admin thành công!"
+            )
+
+            st.rerun()
+
+        else:
+
+            st.error(
+                "❌ Tên đăng nhập hoặc mật khẩu không đúng."
+            )
+
+    st.markdown(
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# ĐĂNG XUẤT ADMIN
+# ============================================================
+
+def admin_logout():
+
+    st.session_state.admin_logged_in = False
+
+    st.success("Đã đăng xuất Admin.")
+
+    st.rerun()
+
+
+# ============================================================
+# TẠO HÓA ĐƠN TXT
 # ============================================================
 
 def create_txt_invoice():
 
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    now = datetime.now().strftime(
+        "%d/%m/%Y %H:%M:%S"
+    )
 
     lines = []
 
     lines.append("=" * 60)
-    lines.append("              HÓA ĐƠN TRÀ SỮA")
-    lines.append("=" * 60)
-    lines.append(f"Mã đơn: {st.session_state.order_id}")
-    lines.append(f"Thời gian: {now}")
+
     lines.append(
-        f"Khách hàng: {st.session_state.customer_name or 'Khách lẻ'}"
+        "              HÓA ĐƠN TRÀ SỮA"
     )
+
+    lines.append("=" * 60)
+
+    lines.append(
+        f"Mã đơn: {st.session_state.order_id}"
+    )
+
+    lines.append(
+        f"Thời gian: {now}"
+    )
+
+    lines.append(
+        f"Khách hàng: "
+        f"{st.session_state.customer_name or 'Khách lẻ'}"
+    )
+
     lines.append("-" * 60)
 
-    for i, item in enumerate(st.session_state.cart, 1):
+    for index, item in enumerate(
+        st.session_state.cart,
+        1
+    ):
 
         lines.append(
-            f"{i}. {item['name']} - Size {item['size']}"
+            f"{index}. {item['name']} - Size {item['size']}"
         )
 
         lines.append(
@@ -395,7 +619,8 @@ def create_txt_invoice():
         if item["toppings"]:
 
             topping_text = ", ".join(
-                t["name"] for t in item["toppings"]
+                topping["name"]
+                for topping in item["toppings"]
             )
 
             lines.append(
@@ -404,173 +629,219 @@ def create_txt_invoice():
 
         else:
 
-            lines.append("   Topping: Không")
-
-        if item["notes"]:
-
             lines.append(
-                f"   Ghi chú: {item['notes']}"
+                "   Topping: Không"
             )
 
         lines.append(
-            f"   Đơn giá: {money(item['price'] + item['size_price'])}"
+            f"   Ghi chú: "
+            f"{item['notes'] or 'Không'}"
+        )
+
+        unit_price = (
+            item["price"]
+            + item["size_price"]
         )
 
         lines.append(
-            f"   Thành tiền: {money(calculate_item_total(item))}"
+            f"   Đơn giá: {money(unit_price)}"
+        )
+
+        lines.append(
+            f"   Thành tiền: "
+            f"{money(calculate_item_total(item))}"
         )
 
         lines.append("-" * 60)
 
     lines.append(
-        f"TỔNG THANH TOÁN: {money(calculate_cart_total())}"
+        f"TỔNG THANH TOÁN: "
+        f"{money(calculate_cart_total())}"
     )
 
     lines.append("=" * 60)
-    lines.append("       Cảm ơn quý khách!")
+
+    lines.append(
+        "       Cảm ơn quý khách!"
+    )
+
     lines.append("=" * 60)
 
     return "\n".join(lines).encode("utf-8")
 
 
 # ============================================================
-# XUẤT FILE HTML
+# TẠO HÓA ĐƠN HTML
 # ============================================================
 
 def create_html_invoice():
 
-    now = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    now = datetime.now().strftime(
+        "%d/%m/%Y %H:%M:%S"
+    )
 
     rows = ""
 
-    for i, item in enumerate(st.session_state.cart, 1):
+    for index, item in enumerate(
+        st.session_state.cart,
+        1
+    ):
 
         toppings = ", ".join(
-            t["name"] for t in item["toppings"]
+            topping["name"]
+            for topping in item["toppings"]
         ) if item["toppings"] else "Không"
 
         rows += f"""
         <tr>
-            <td>{i}</td>
-            <td>{item['name']}</td>
+            <td>{index}</td>
+            <td>{html.escape(item['name'])}</td>
             <td>{item['size']}</td>
             <td>{item['quantity']}</td>
             <td>{item['sugar']}%</td>
             <td>{item['ice']}%</td>
-            <td>{toppings}</td>
-            <td>{item['notes']}</td>
+            <td>{html.escape(toppings)}</td>
+            <td>{html.escape(item['notes'] or 'Không')}</td>
             <td>{money(calculate_item_total(item))}</td>
         </tr>
         """
 
-    html = f"""
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
-        <title>Hóa đơn trà sữa</title>
+    customer = html.escape(
+        st.session_state.customer_name
+        or "Khách lẻ"
+    )
 
-        <style>
+    invoice_html = f"""
+<!DOCTYPE html>
 
-            body {{
-                font-family: Arial, sans-serif;
-                margin: 30px;
-            }}
+<html lang="vi">
 
-            h1 {{
-                text-align: center;
-            }}
+<head>
 
-            .info {{
-                margin-bottom: 20px;
-            }}
+<meta charset="UTF-8">
 
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-            }}
+<title>Hóa đơn trà sữa</title>
 
-            th, td {{
-                border: 1px solid #999;
-                padding: 8px;
-                text-align: center;
-            }}
+<style>
 
-            th {{
-                background: #f5d5c5;
-            }}
+body {{
+    font-family: Arial, sans-serif;
+    margin: 30px;
+}}
 
-            .total {{
-                text-align: right;
-                font-size: 22px;
-                font-weight: bold;
-                margin-top: 20px;
-            }}
+h1 {{
+    text-align: center;
+    color: #8B4513;
+}}
 
-        </style>
-    </head>
+.info {{
+    margin-bottom: 20px;
+}}
 
-    <body>
+table {{
+    width: 100%;
+    border-collapse: collapse;
+}}
 
-        <h1>🧋 HÓA ĐƠN TRÀ SỮA</h1>
+th, td {{
+    border: 1px solid #999;
+    padding: 8px;
+    text-align: center;
+}}
 
-        <div class="info">
+th {{
+    background: #f5d5c5;
+}}
 
-            <b>Mã đơn:</b>
-            {st.session_state.order_id}
-            <br>
+.total {{
+    text-align: right;
+    font-size: 24px;
+    font-weight: bold;
+    margin-top: 20px;
+}}
 
-            <b>Thời gian:</b>
-            {now}
-            <br>
+</style>
 
-            <b>Khách hàng:</b>
-            {st.session_state.customer_name or "Khách lẻ"}
+</head>
 
-        </div>
+<body>
 
-        <table>
+<h1>🧋 HÓA ĐƠN TRÀ SỮA</h1>
 
-            <thead>
+<div class="info">
 
-                <tr>
-                    <th>#</th>
-                    <th>Món</th>
-                    <th>Size</th>
-                    <th>SL</th>
-                    <th>Đường</th>
-                    <th>Đá</th>
-                    <th>Topping</th>
-                    <th>Ghi chú</th>
-                    <th>Thành tiền</th>
-                </tr>
+<b>Mã đơn:</b>
+{st.session_state.order_id}
 
-            </thead>
+<br>
 
-            <tbody>
+<b>Thời gian:</b>
+{now}
 
-                {rows}
+<br>
 
-            </tbody>
+<b>Khách hàng:</b>
+{customer}
 
-        </table>
+</div>
 
-        <div class="total">
-            Tổng thanh toán:
-            {money(calculate_cart_total())}
-        </div>
+<table>
 
-        <br>
+<thead>
 
-        <center>
-            <b>Cảm ơn quý khách đã sử dụng dịch vụ!</b>
-        </center>
+<tr>
 
-    </body>
-    </html>
-    """
+<th>#</th>
 
-    return html.encode("utf-8")
+<th>Món</th>
+
+<th>Size</th>
+
+<th>SL</th>
+
+<th>Đường</th>
+
+<th>Đá</th>
+
+<th>Topping</th>
+
+<th>Ghi chú</th>
+
+<th>Thành tiền</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+{rows}
+
+</tbody>
+
+</table>
+
+<div class="total">
+
+TỔNG THANH TOÁN:
+{money(calculate_cart_total())}
+
+</div>
+
+<br>
+
+<center>
+
+<b>Cảm ơn quý khách đã sử dụng dịch vụ!</b>
+
+</center>
+
+</body>
+
+</html>
+"""
+
+    return invoice_html.encode("utf-8")
 
 
 # ============================================================
@@ -578,29 +849,91 @@ def create_html_invoice():
 # ============================================================
 
 st.title("🧋 HÓA ĐƠN TRÀ SỮA")
-st.caption("Hệ thống Order – Quản lý món – Tính tiền – Xuất hóa đơn")
 
-
-# ============================================================
-# MENU CHÍNH
-# ============================================================
-
-menu = st.sidebar.radio(
-    "📌 MENU",
-    [
-        "🛒 Đặt hàng",
-        "📋 Quản lý danh mục",
-        "🍹 Quản lý món",
-        "🥤 Quản lý topping"
-    ]
+st.caption(
+    "Hệ thống Order • Tính Bill • Quản lý món • Xuất hóa đơn"
 )
 
 
 # ============================================================
-# 1. ĐẶT HÀNG
+# SIDEBAR
 # ============================================================
 
-if menu == "🛒 Đặt hàng":
+st.sidebar.title("📌 MENU")
+
+
+# ============================================================
+# MENU DÀNH CHO NGƯỜI DÙNG
+# ============================================================
+
+if st.session_state.admin_logged_in:
+
+    st.sidebar.success(
+        "🔓 ADMIN ĐANG ĐĂNG NHẬP"
+    )
+
+    st.sidebar.write(
+        f"👤 {ADMIN_USERNAME}"
+    )
+
+    menu_options = [
+        "🛒 Đặt hàng",
+        "📋 Quản lý danh mục",
+        "🍹 Quản lý món",
+        "🥤 Quản lý topping",
+        "⚙️ Tài khoản Admin"
+    ]
+
+else:
+
+    menu_options = [
+        "🛒 Đặt hàng",
+        "🔐 Đăng nhập Admin"
+    ]
+
+
+menu = st.sidebar.radio(
+    "Chọn chức năng",
+    menu_options
+)
+
+
+# ============================================================
+# NÚT ĐĂNG XUẤT
+# ============================================================
+
+if st.session_state.admin_logged_in:
+
+    st.sidebar.divider()
+
+    if st.sidebar.button(
+        "🚪 Đăng xuất Admin",
+        use_container_width=True
+    ):
+
+        admin_logout()
+
+
+# ============================================================
+# ============================================================
+# 1. ĐĂNG NHẬP ADMIN
+# ============================================================
+# ============================================================
+
+if menu == "🔐 Đăng nhập Admin":
+
+    st.header("🔐 ĐĂNG NHẬP QUẢN TRỊ")
+
+    admin_login()
+
+
+# ============================================================
+# ============================================================
+# 2. ĐẶT HÀNG
+# ============================================================
+# ============================================================
+
+elif menu == "🛒 Đặt hàng":
 
     st.header("🛒 TẠO ĐƠN HÀNG")
 
@@ -619,20 +952,22 @@ if menu == "🛒 Đặt hàng":
     st.divider()
 
     # --------------------------------------------------------
-    # CHỌN MÓN
+    # THÊM MÓN
     # --------------------------------------------------------
 
-    st.subheader("🥤 Thêm món vào đơn")
+    st.subheader("🥤 THÊM MÓN VÀO ĐƠN")
 
     visible_categories = [
-        c["name"]
-        for c in st.session_state.data["categories"]
-        if c["visible"]
+        category["name"]
+        for category in st.session_state.data["categories"]
+        if category["visible"]
     ]
 
     if not visible_categories:
 
-        st.warning("Chưa có danh mục món đang hiển thị.")
+        st.warning(
+            "Hiện chưa có danh mục món."
+        )
 
     else:
 
@@ -642,20 +977,23 @@ if menu == "🛒 Đặt hàng":
         )
 
         available_products = [
-            p for p in st.session_state.data["products"]
-            if p["category"] == selected_category
-            and p["status"] == "Còn hàng"
+            product
+            for product in st.session_state.data["products"]
+            if product["category"] == selected_category
+            and product["status"] == "Còn hàng"
         ]
 
         if not available_products:
 
-            st.warning("Danh mục này hiện chưa có món còn hàng.")
+            st.warning(
+                "Danh mục này hiện chưa có món còn hàng."
+            )
 
         else:
 
             product_names = [
-                p["name"]
-                for p in available_products
+                product["name"]
+                for product in available_products
             ]
 
             selected_product_name = st.selectbox(
@@ -664,36 +1002,42 @@ if menu == "🛒 Đặt hàng":
             )
 
             product = next(
-                p for p in available_products
-                if p["name"] == selected_product_name
+                product
+                for product in available_products
+                if product["name"] == selected_product_name
             )
 
-            col1, col2 = st.columns([1, 2])
+            image_col, info_col = st.columns(
+                [1, 2]
+            )
 
-            with col1:
+            with image_col:
 
                 if product["image"]:
 
                     try:
+
                         st.image(
                             product["image"],
                             use_container_width=True
                         )
-                    except:
+
+                    except Exception:
+
                         pass
 
-            with col2:
+            with info_col:
 
-                st.write(
-                    f"**{product['name']}**"
+                st.markdown(
+                    f"### 🧋 {product['name']}"
                 )
 
                 st.write(
                     product["description"]
                 )
 
-                st.write(
-                    f"Giá cơ bản: **{money(product['price'])}**"
+                st.markdown(
+                    f"### {money(product['price'])}"
                 )
 
             # ------------------------------------------------
@@ -706,11 +1050,21 @@ if menu == "🛒 Đặt hàng":
                 horizontal=True
             )
 
-            size_price = product["sizes"].get(size, 0)
+            size_price = product[
+                "sizes"
+            ].get(
+                size,
+                0
+            )
+
+            current_price = (
+                product["price"]
+                + size_price
+            )
 
             st.info(
                 f"Giá Size {size}: "
-                f"{money(product['price'] + size_price)}"
+                f"**{money(current_price)}**"
             )
 
             # ------------------------------------------------
@@ -732,7 +1086,8 @@ if menu == "🛒 Đặt hàng":
             sugar = st.selectbox(
                 "🍬 Mức độ đường",
                 [100, 70, 50, 30, 10, 0],
-                format_func=lambda x: f"{x}%"
+                format_func=lambda value:
+                    f"{value}%"
             )
 
             # ------------------------------------------------
@@ -742,7 +1097,8 @@ if menu == "🛒 Đặt hàng":
             ice = st.selectbox(
                 "🧊 Lượng đá",
                 [100, 70, 50, 30, 10, 0],
-                format_func=lambda x: f"{x}%"
+                format_func=lambda value:
+                    f"{value}%"
             )
 
             # ------------------------------------------------
@@ -750,15 +1106,18 @@ if menu == "🛒 Đặt hàng":
             # ------------------------------------------------
 
             available_toppings = [
-                t
-                for t in st.session_state.data["toppings"]
-                if t["visible"]
-                and t["status"] == "Còn hàng"
+                topping
+                for topping
+                in st.session_state.data["toppings"]
+                if topping["visible"]
+                and topping["status"] == "Còn hàng"
             ]
 
             topping_options = {
-                f"{t['name']} (+{money(t['price'])})": t
-                for t in available_toppings
+                f"{topping['name']} "
+                f"(+{money(topping['price'])})":
+                topping
+                for topping in available_toppings
             }
 
             selected_topping_labels = st.multiselect(
@@ -767,15 +1126,17 @@ if menu == "🛒 Đặt hàng":
             )
 
             selected_toppings = [
-                topping_options[x]
-                for x in selected_topping_labels
+                topping_options[label]
+                for label in selected_topping_labels
             ]
 
             # ------------------------------------------------
             # GHI CHÚ
             # ------------------------------------------------
 
-            st.markdown("### 📝 Ghi chú riêng")
+            st.markdown(
+                "### 📝 GHI CHÚ RIÊNG"
+            )
 
             notes_options = [
                 "Nhiều sữa",
@@ -790,41 +1151,63 @@ if menu == "🛒 Đặt hàng":
             )
 
             custom_note = st.text_input(
-                "Ghi chú thêm",
-                placeholder="Ví dụ: Ít ngọt hơn, để riêng topping..."
+                "Ghi chú theo yêu cầu",
+                placeholder=(
+                    "Ví dụ: Ít ngọt hơn, "
+                    "để riêng topping..."
+                )
             )
 
-            notes = ", ".join(selected_notes)
+            notes = ", ".join(
+                selected_notes
+            )
 
             if custom_note.strip():
 
                 if notes:
+
                     notes += ", "
 
                 notes += custom_note.strip()
 
             # ------------------------------------------------
-            # GIÁ MÓN
+            # TÍNH TIỀN MÓN
             # ------------------------------------------------
 
-            temp_item = {
+            preview_item = {
+
                 "name": product["name"],
+
                 "price": product["price"],
+
                 "size_price": size_price,
+
                 "quantity": quantity,
+
                 "size": size,
+
                 "sugar": sugar,
+
                 "ice": ice,
+
                 "toppings": selected_toppings,
+
                 "notes": notes
+
             }
 
-            preview_total = calculate_item_total(temp_item)
+            preview_total = calculate_item_total(
+                preview_item
+            )
 
             st.info(
                 f"💰 Thành tiền món này: "
                 f"**{money(preview_total)}**"
             )
+
+            # ------------------------------------------------
+            # THÊM VÀO GIỎ
+            # ------------------------------------------------
 
             if st.button(
                 "➕ THÊM MÓN VÀO ĐƠN",
@@ -833,27 +1216,41 @@ if menu == "🛒 Đặt hàng":
             ):
 
                 item = {
+
                     "name": product["name"],
+
                     "price": product["price"],
+
                     "size": size,
+
                     "size_price": size_price,
+
                     "quantity": quantity,
+
                     "sugar": sugar,
+
                     "ice": ice,
+
                     "toppings": selected_toppings,
+
                     "notes": notes
+
                 }
 
-                st.session_state.cart.append(item)
+                st.session_state.cart.append(
+                    item
+                )
 
                 st.success(
-                    f"Đã thêm {quantity} x {product['name']} vào đơn!"
+                    f"Đã thêm "
+                    f"{quantity} x "
+                    f"{product['name']}!"
                 )
 
                 st.rerun()
 
     # ========================================================
-    # ĐƠN HÀNG HIỆN TẠI
+    # CHI TIẾT ĐƠN
     # ========================================================
 
     st.divider()
@@ -863,8 +1260,7 @@ if menu == "🛒 Đặt hàng":
     if not st.session_state.cart:
 
         st.info(
-            "Chưa có món nào trong đơn. "
-            "Hãy chọn món phía trên và bấm 'THÊM MÓN VÀO ĐƠN'."
+            "Chưa có món trong đơn."
         )
 
     else:
@@ -873,64 +1269,81 @@ if menu == "🛒 Đặt hàng":
             st.session_state.cart
         ):
 
-            item_total = calculate_item_total(item)
+            item_total = calculate_item_total(
+                item
+            )
 
-            toppings_text = (
-                ", ".join(
+            if item["toppings"]:
+
+                toppings_text = ", ".join(
                     topping["name"]
                     for topping in item["toppings"]
                 )
-                if item["toppings"]
-                else "Không"
-            )
+
+            else:
+
+                toppings_text = "Không"
 
             st.markdown(
                 f"""
-                <div class="order-card">
+<div class="order-card">
 
-                    <div class="order-title">
-                        🧋 {index + 1}. {item['name']}
-                    </div>
+<div class="order-title">
 
-                    <div class="order-detail">
+🧋 {index + 1}. {html.escape(item['name'])}
 
-                        📏 <b>Size:</b> {item['size']}<br>
+</div>
 
-                        🔢 <b>Số lượng:</b>
-                        {item['quantity']}<br>
+<div class="order-detail">
 
-                        🍬 <b>Đường:</b>
-                        {item['sugar']}%<br>
+📏 <b>Size:</b>
+{item['size']}
+<br>
 
-                        🧊 <b>Đá:</b>
-                        {item['ice']}%<br>
+🔢 <b>Số lượng:</b>
+{item['quantity']}
+<br>
 
-                        🧋 <b>Topping:</b>
-                        {toppings_text}<br>
+🍬 <b>Đường:</b>
+{item['sugar']}%
+<br>
 
-                        📝 <b>Ghi chú:</b>
-                        {item['notes'] or 'Không'}<br>
+🧊 <b>Đá:</b>
+{item['ice']}%
+<br>
 
-                        💰 <b>Thành tiền:</b>
-                        {money(item_total)}
+🧋 <b>Topping:</b>
+{html.escape(toppings_text)}
+<br>
 
-                    </div>
+📝 <b>Ghi chú:</b>
+{html.escape(item['notes'] or 'Không')}
+<br>
 
-                </div>
-                """,
+💰 <b>Thành tiền:</b>
+{money(item_total)}
+
+</div>
+
+</div>
+""",
                 unsafe_allow_html=True
             )
 
-            col1, col2 = st.columns([5, 1])
+            delete_col1, delete_col2 = st.columns(
+                [5, 1]
+            )
 
-            with col2:
+            with delete_col2:
 
                 if st.button(
                     "🗑️ Xóa",
-                    key=f"delete_{index}"
+                    key=f"delete_cart_{index}"
                 ):
 
-                    st.session_state.cart.pop(index)
+                    st.session_state.cart.pop(
+                        index
+                    )
 
                     st.rerun()
 
@@ -942,34 +1355,45 @@ if menu == "🛒 Đặt hàng":
 
         st.markdown(
             f"""
-            <div class="total-box">
+<div class="total-box">
 
-                <div>
-                    👤 Khách hàng:
-                    <b>
-                    {st.session_state.customer_name or "Khách lẻ"}
-                    </b>
-                </div>
+<div>
 
-                <br>
+👤 Khách hàng:
+<b>
+{html.escape(
+    st.session_state.customer_name
+    or "Khách lẻ"
+)}
+</b>
 
-                <div>
-                    🧾 Số món:
-                    <b>{len(st.session_state.cart)}</b>
-                </div>
+</div>
 
-                <br>
+<br>
 
-                <div class="total-money">
-                    💰 {money(total)}
-                </div>
+<div>
 
-                <div>
-                    TỔNG SỐ TIỀN CẦN THANH TOÁN
-                </div>
+🧾 Số món:
+<b>{len(st.session_state.cart)}</b>
 
-            </div>
-            """,
+</div>
+
+<br>
+
+<div class="total-money">
+
+💰 {money(total)}
+
+</div>
+
+<div>
+
+TỔNG SỐ TIỀN CẦN THANH TOÁN
+
+</div>
+
+</div>
+""",
             unsafe_allow_html=True
         )
 
@@ -979,7 +1403,7 @@ if menu == "🛒 Đặt hàng":
         # XUẤT HÓA ĐƠN
         # ----------------------------------------------------
 
-        st.subheader("📤 Xuất hóa đơn")
+        st.subheader("📤 XUẤT HÓA ĐƠN")
 
         col1, col2, col3 = st.columns(3)
 
@@ -990,7 +1414,10 @@ if menu == "🛒 Đặt hàng":
             st.download_button(
                 "📄 Tải hóa đơn TXT",
                 data=txt_data,
-                file_name=f"hoa_don_{st.session_state.order_id}.txt",
+                file_name=(
+                    f"hoa_don_"
+                    f"{st.session_state.order_id}.txt"
+                ),
                 mime="text/plain",
                 use_container_width=True
             )
@@ -1002,7 +1429,10 @@ if menu == "🛒 Đặt hàng":
             st.download_button(
                 "🌐 Tải hóa đơn HTML",
                 data=html_data,
-                file_name=f"hoa_don_{st.session_state.order_id}.html",
+                file_name=(
+                    f"hoa_don_"
+                    f"{st.session_state.order_id}.html"
+                ),
                 mime="text/html",
                 use_container_width=True
             )
@@ -1010,7 +1440,7 @@ if menu == "🛒 Đặt hàng":
         with col3:
 
             if st.button(
-                "🗑️ Tạo đơn mới",
+                "🗑️ TẠO ĐƠN MỚI",
                 use_container_width=True
             ):
 
@@ -1020,181 +1450,320 @@ if menu == "🛒 Đặt hàng":
 
 
 # ============================================================
-# 2. QUẢN LÝ DANH MỤC
+# ============================================================
+# 3. QUẢN LÝ DANH MỤC - CHỈ ADMIN
+# ============================================================
 # ============================================================
 
 elif menu == "📋 Quản lý danh mục":
 
-    st.header("📋 QUẢN LÝ DANH MỤC")
+    if not st.session_state.admin_logged_in:
 
-    st.subheader("➕ Tạo danh mục mới")
+        st.error(
+            "🔒 Bạn phải đăng nhập Admin."
+        )
+
+        st.stop()
+
+    st.header(
+        "📋 QUẢN LÝ DANH MỤC"
+    )
+
+    st.success(
+        "🔓 Bạn đang sử dụng quyền quản trị."
+    )
+
+    # --------------------------------------------------------
+    # THÊM DANH MỤC
+    # --------------------------------------------------------
+
+    st.subheader(
+        "➕ TẠO DANH MỤC MỚI"
+    )
 
     new_category = st.text_input(
-        "Tên danh mục mới",
-        placeholder="Ví dụ: Cà phê, Đá xay..."
+        "Tên danh mục",
+        placeholder=(
+            "Ví dụ: Cà phê, Đá xay..."
+        )
     )
 
     if st.button(
-        "➕ Tạo danh mục",
+        "➕ TẠO DANH MỤC",
         type="primary"
     ):
 
-        if not new_category.strip():
+        new_category = new_category.strip()
 
-            st.error("Vui lòng nhập tên danh mục.")
+        if not new_category:
+
+            st.error(
+                "Vui lòng nhập tên danh mục."
+            )
 
         elif any(
-            c["name"].lower() == new_category.strip().lower()
-            for c in st.session_state.data["categories"]
+            category["name"].lower()
+            == new_category.lower()
+            for category
+            in st.session_state.data["categories"]
         ):
 
-            st.error("Danh mục này đã tồn tại.")
+            st.error(
+                "Danh mục đã tồn tại."
+            )
 
         else:
 
-            st.session_state.data["categories"].append(
+            st.session_state.data[
+                "categories"
+            ].append(
                 {
                     "id": get_next_id(
-                        st.session_state.data["categories"]
+                        st.session_state.data[
+                            "categories"
+                        ]
                     ),
-                    "name": new_category.strip(),
+                    "name": new_category,
                     "visible": True
                 }
             )
 
             save_data()
 
-            st.success("Đã tạo danh mục.")
+            st.success(
+                "Đã tạo danh mục."
+            )
 
             st.rerun()
 
     st.divider()
 
-    st.subheader("📂 Danh sách danh mục")
+    # --------------------------------------------------------
+    # DANH SÁCH DANH MỤC
+    # --------------------------------------------------------
 
-    for category in st.session_state.data["categories"]:
+    st.subheader(
+        "📂 DANH SÁCH DANH MỤC"
+    )
 
-        col1, col2, col3, col4 = st.columns(
-            [3, 2, 1, 1]
-        )
+    for category in st.session_state.data[
+        "categories"
+    ]:
 
-        with col1:
+        with st.container(
+            border=True
+        ):
 
-            st.write(
-                f"**{category['name']}**"
+            col1, col2, col3 = st.columns(
+                [4, 2, 2]
             )
 
-        with col2:
+            with col1:
 
-            if category["visible"]:
-
-                st.success("Đang hiển thị")
-
-            else:
-
-                st.warning("Đang ẩn")
-
-        with col3:
-
-            button_text = (
-                "🙈 Ẩn"
-                if category["visible"]
-                else "👁️ Hiện"
-            )
-
-            if st.button(
-                button_text,
-                key=f"cat_visible_{category['id']}"
-            ):
-
-                category["visible"] = not category["visible"]
-
-                save_data()
-
-                st.rerun()
-
-        with col4:
-
-            if st.button(
-                "🗑️ Xóa",
-                key=f"cat_delete_{category['id']}"
-            ):
-
-                # Không cho xóa nếu đang có món thuộc danh mục
-                used = any(
-                    p["category"] == category["name"]
-                    for p in st.session_state.data["products"]
+                st.write(
+                    f"### 📂 {category['name']}"
                 )
 
-                if used:
+            with col2:
 
-                    st.error(
-                        "Không thể xóa vì danh mục đang có món."
+                if category["visible"]:
+
+                    st.success(
+                        "👁️ Đang hiển thị"
                     )
 
                 else:
 
-                    st.session_state.data["categories"].remove(
-                        category
+                    st.warning(
+                        "🙈 Đang ẩn"
+                    )
+
+            with col3:
+
+                button_text = (
+                    "🙈 Ẩn danh mục"
+                    if category["visible"]
+                    else "👁️ Hiện danh mục"
+                )
+
+                if st.button(
+                    button_text,
+                    key=(
+                        f"toggle_category_"
+                        f"{category['id']}"
+                    ),
+                    use_container_width=True
+                ):
+
+                    category["visible"] = (
+                        not category["visible"]
                     )
 
                     save_data()
 
                     st.rerun()
 
-        edit_name = st.text_input(
-            "Sửa tên danh mục",
-            value=category["name"],
-            key=f"cat_edit_{category['id']}"
-        )
+            edit_name = st.text_input(
+                "Sửa tên danh mục",
+                value=category["name"],
+                key=(
+                    f"edit_category_"
+                    f"{category['id']}"
+                )
+            )
 
-        if st.button(
-            "💾 Lưu tên",
-            key=f"cat_save_{category['id']}"
-        ):
+            edit_col1, edit_col2 = st.columns(
+                2
+            )
 
-            old_name = category["name"]
+            with edit_col1:
 
-            category["name"] = edit_name.strip()
+                if st.button(
+                    "💾 LƯU TÊN",
+                    key=(
+                        f"save_category_"
+                        f"{category['id']}"
+                    ),
+                    use_container_width=True
+                ):
 
-            # cập nhật category cho sản phẩm
-            for product in st.session_state.data["products"]:
+                    old_name = category[
+                        "name"
+                    ]
 
-                if product["category"] == old_name:
+                    new_name = edit_name.strip()
 
-                    product["category"] = edit_name.strip()
+                    if not new_name:
 
-            save_data()
+                        st.error(
+                            "Tên danh mục không được để trống."
+                        )
 
-            st.success("Đã cập nhật.")
+                    else:
 
-            st.rerun()
+                        category["name"] = new_name
+
+                        for product in (
+                            st.session_state.data[
+                                "products"
+                            ]
+                        ):
+
+                            if product[
+                                "category"
+                            ] == old_name:
+
+                                product[
+                                    "category"
+                                ] = new_name
+
+                        save_data()
+
+                        st.success(
+                            "Đã cập nhật danh mục."
+                        )
+
+                        st.rerun()
+
+            with edit_col2:
+
+                if st.button(
+                    "🗑️ XÓA DANH MỤC",
+                    key=(
+                        f"delete_category_"
+                        f"{category['id']}"
+                    ),
+                    use_container_width=True
+                ):
+
+                    used = any(
+                        product["category"]
+                        == category["name"]
+                        for product
+                        in st.session_state.data[
+                            "products"
+                        ]
+                    )
+
+                    if used:
+
+                        st.error(
+                            "Không thể xóa danh mục "
+                            "vì đang có món thuộc danh mục này."
+                        )
+
+                    else:
+
+                        st.session_state.data[
+                            "categories"
+                        ].remove(
+                            category
+                        )
+
+                        save_data()
+
+                        st.success(
+                            "Đã xóa danh mục."
+                        )
+
+                        st.rerun()
 
 
 # ============================================================
-# 3. QUẢN LÝ MÓN
+# ============================================================
+# 4. QUẢN LÝ MÓN - CHỈ ADMIN
+# ============================================================
 # ============================================================
 
 elif menu == "🍹 Quản lý món":
 
-    st.header("🍹 QUẢN LÝ MÓN")
+    if not st.session_state.admin_logged_in:
+
+        st.error(
+            "🔒 Bạn phải đăng nhập Admin."
+        )
+
+        st.stop()
+
+    st.header(
+        "🍹 QUẢN LÝ MÓN"
+    )
+
+    st.success(
+        "🔓 Quyền Admin đang hoạt động."
+    )
 
     categories = [
-        c["name"]
-        for c in st.session_state.data["categories"]
+        category["name"]
+        for category
+        in st.session_state.data[
+            "categories"
+        ]
     ]
 
     if not categories:
 
-        st.warning("Hãy tạo danh mục trước.")
+        st.warning(
+            "Hãy tạo danh mục trước."
+        )
 
     else:
 
-        st.subheader("➕ Thêm món mới")
+        # ----------------------------------------------------
+        # THÊM MÓN
+        # ----------------------------------------------------
 
-        with st.form("add_product_form"):
+        st.subheader(
+            "➕ THÊM MÓN MỚI"
+        )
 
-            col1, col2 = st.columns(2)
+        with st.form(
+            "add_product_form"
+        ):
+
+            col1, col2 = st.columns(
+                2
+            )
 
             with col1:
 
@@ -1215,7 +1784,7 @@ elif menu == "🍹 Quản lý món":
                 )
 
                 description = st.text_area(
-                    "Mô tả"
+                    "Mô tả món"
                 )
 
             with col2:
@@ -1227,10 +1796,15 @@ elif menu == "🍹 Quản lý món":
 
                 status = st.selectbox(
                     "Trạng thái món",
-                    ["Còn hàng", "Hết hàng"]
+                    [
+                        "Còn hàng",
+                        "Hết hàng"
+                    ]
                 )
 
-                st.write("Chênh lệch giá theo Size")
+                st.write(
+                    "**Giá chênh lệch theo Size**"
+                )
 
                 size_s = st.number_input(
                     "Size S (+)",
@@ -1260,21 +1834,27 @@ elif menu == "🍹 Quản lý món":
 
         if submitted:
 
-            if not product_name.strip():
+            product_name = product_name.strip()
 
-                st.error("Vui lòng nhập tên món.")
+            if not product_name:
+
+                st.error(
+                    "Vui lòng nhập tên món."
+                )
 
             else:
 
                 new_product = {
 
                     "id": get_next_id(
-                        st.session_state.data["products"]
+                        st.session_state.data[
+                            "products"
+                        ]
                     ),
 
                     "category": category,
 
-                    "name": product_name.strip(),
+                    "name": product_name,
 
                     "image": image_url.strip(),
 
@@ -1285,111 +1865,167 @@ elif menu == "🍹 Quản lý món":
                     "status": status,
 
                     "sizes": {
+
                         "S": size_s,
+
                         "M": size_m,
+
                         "L": size_l
+
                     }
+
                 }
 
-                st.session_state.data["products"].append(
+                st.session_state.data[
+                    "products"
+                ].append(
                     new_product
                 )
 
                 save_data()
 
-                st.success("Đã thêm món.")
+                st.success(
+                    "Đã thêm món mới."
+                )
 
                 st.rerun()
 
     st.divider()
 
-    st.subheader("📋 Danh sách món")
+    # --------------------------------------------------------
+    # DANH SÁCH MÓN
+    # --------------------------------------------------------
 
-    for product in st.session_state.data["products"]:
+    st.subheader(
+        "📋 DANH SÁCH MÓN"
+    )
+
+    for product in st.session_state.data[
+        "products"
+    ]:
 
         with st.expander(
-            f"{product['name']} – {money(product['price'])}"
+            f"🧋 {product['name']} "
+            f"– {money(product['price'])}"
         ):
 
-            col1, col2 = st.columns([1, 3])
+            image_col, info_col = st.columns(
+                [1, 3]
+            )
 
-            with col1:
+            with image_col:
 
                 if product["image"]:
 
                     try:
+
                         st.image(
                             product["image"],
                             use_container_width=True
                         )
-                    except:
+
+                    except Exception:
+
                         pass
 
-            with col2:
+            with info_col:
 
                 st.write(
-                    f"**Danh mục:** {product['category']}"
+                    f"**Danh mục:** "
+                    f"{product['category']}"
                 )
 
                 st.write(
-                    f"**Giá cơ bản:** {money(product['price'])}"
+                    f"**Giá cơ bản:** "
+                    f"{money(product['price'])}"
                 )
 
                 st.write(
-                    f"**Size S:** +{money(product['sizes']['S'])}"
+                    f"**Size S:** "
+                    f"+{money(product['sizes']['S'])}"
                 )
 
                 st.write(
-                    f"**Size M:** +{money(product['sizes']['M'])}"
+                    f"**Size M:** "
+                    f"+{money(product['sizes']['M'])}"
                 )
 
                 st.write(
-                    f"**Size L:** +{money(product['sizes']['L'])}"
+                    f"**Size L:** "
+                    f"+{money(product['sizes']['L'])}"
                 )
 
-                st.write(
-                    f"**Trạng thái:** {product['status']}"
-                )
+                if product["status"] == "Còn hàng":
+
+                    st.success(
+                        "🟢 CÒN HÀNG"
+                    )
+
+                else:
+
+                    st.error(
+                        "🔴 HẾT HÀNG"
+                    )
 
                 st.write(
                     product["description"]
                 )
 
-            st.markdown("---")
+            st.divider()
 
-            # ------------------------------------------------
-            # SỬA MÓN
-            # ------------------------------------------------
+            st.markdown(
+                "### ✏️ CHỈNH SỬA MÓN"
+            )
 
-            st.markdown("### ✏️ Chỉnh sửa món")
-
-            edit_col1, edit_col2 = st.columns(2)
+            edit_col1, edit_col2 = st.columns(
+                2
+            )
 
             with edit_col1:
 
                 edit_name = st.text_input(
                     "Tên món",
                     value=product["name"],
-                    key=f"edit_name_{product['id']}"
+                    key=(
+                        f"edit_name_"
+                        f"{product['id']}"
+                    )
                 )
+
+                current_category_index = 0
+
+                if (
+                    product["category"]
+                    in categories
+                ):
+
+                    current_category_index = (
+                        categories.index(
+                            product["category"]
+                        )
+                    )
 
                 edit_category = st.selectbox(
                     "Danh mục",
                     categories,
-                    index=(
-                        categories.index(product["category"])
-                        if product["category"] in categories
-                        else 0
-                    ),
-                    key=f"edit_category_{product['id']}"
+                    index=current_category_index,
+                    key=(
+                        f"edit_category_product_"
+                        f"{product['id']}"
+                    )
                 )
 
                 edit_price = st.number_input(
                     "Giá cơ bản",
                     min_value=0,
-                    value=int(product["price"]),
+                    value=int(
+                        product["price"]
+                    ),
                     step=1000,
-                    key=f"edit_price_{product['id']}"
+                    key=(
+                        f"edit_price_"
+                        f"{product['id']}"
+                    )
                 )
 
             with edit_col2:
@@ -1397,36 +2033,64 @@ elif menu == "🍹 Quản lý món":
                 edit_image = st.text_input(
                     "URL hình ảnh",
                     value=product["image"],
-                    key=f"edit_image_{product['id']}"
+                    key=(
+                        f"edit_image_"
+                        f"{product['id']}"
+                    )
                 )
 
                 edit_status = st.selectbox(
                     "Trạng thái",
-                    ["Còn hàng", "Hết hàng"],
+                    [
+                        "Còn hàng",
+                        "Hết hàng"
+                    ],
                     index=(
                         0
-                        if product["status"] == "Còn hàng"
+                        if product["status"]
+                        == "Còn hàng"
                         else 1
                     ),
-                    key=f"edit_status_{product['id']}"
+                    key=(
+                        f"edit_status_"
+                        f"{product['id']}"
+                    )
                 )
 
                 edit_description = st.text_area(
                     "Mô tả",
-                    value=product["description"],
-                    key=f"edit_description_{product['id']}"
+                    value=product[
+                        "description"
+                    ],
+                    key=(
+                        f"edit_description_"
+                        f"{product['id']}"
+                    )
                 )
 
-            size_col1, size_col2, size_col3 = st.columns(3)
+            st.write(
+                "**Giá chênh lệch Size**"
+            )
+
+            size_col1, size_col2, size_col3 = (
+                st.columns(3)
+            )
 
             with size_col1:
 
                 edit_s = st.number_input(
                     "Size S +",
                     min_value=0,
-                    value=int(product["sizes"]["S"]),
+                    value=int(
+                        product[
+                            "sizes"
+                        ]["S"]
+                    ),
                     step=1000,
-                    key=f"edit_s_{product['id']}"
+                    key=(
+                        f"edit_s_"
+                        f"{product['id']}"
+                    )
                 )
 
             with size_col2:
@@ -1434,9 +2098,16 @@ elif menu == "🍹 Quản lý món":
                 edit_m = st.number_input(
                     "Size M +",
                     min_value=0,
-                    value=int(product["sizes"]["M"]),
+                    value=int(
+                        product[
+                            "sizes"
+                        ]["M"]
+                    ),
                     step=1000,
-                    key=f"edit_m_{product['id']}"
+                    key=(
+                        f"edit_m_"
+                        f"{product['id']}"
+                    )
                 )
 
             with size_col3:
@@ -1444,74 +2115,137 @@ elif menu == "🍹 Quản lý món":
                 edit_l = st.number_input(
                     "Size L +",
                     min_value=0,
-                    value=int(product["sizes"]["L"]),
+                    value=int(
+                        product[
+                            "sizes"
+                        ]["L"]
+                    ),
                     step=1000,
-                    key=f"edit_l_{product['id']}"
+                    key=(
+                        f"edit_l_"
+                        f"{product['id']}"
+                    )
                 )
 
-            button_col1, button_col2 = st.columns(2)
+            save_col, delete_col = st.columns(
+                2
+            )
 
-            with button_col1:
+            with save_col:
 
                 if st.button(
                     "💾 LƯU THAY ĐỔI",
-                    key=f"save_product_{product['id']}",
-                    type="primary"
+                    key=(
+                        f"save_product_"
+                        f"{product['id']}"
+                    ),
+                    type="primary",
+                    use_container_width=True
                 ):
 
-                    product["name"] = edit_name.strip()
+                    product["name"] = (
+                        edit_name.strip()
+                    )
 
-                    product["category"] = edit_category
+                    product["category"] = (
+                        edit_category
+                    )
 
-                    product["price"] = edit_price
+                    product["price"] = (
+                        edit_price
+                    )
 
-                    product["image"] = edit_image.strip()
+                    product["image"] = (
+                        edit_image.strip()
+                    )
 
-                    product["status"] = edit_status
+                    product["status"] = (
+                        edit_status
+                    )
 
-                    product["description"] = edit_description.strip()
+                    product[
+                        "description"
+                    ] = edit_description.strip()
 
                     product["sizes"] = {
+
                         "S": edit_s,
+
                         "M": edit_m,
+
                         "L": edit_l
+
                     }
 
                     save_data()
 
-                    st.success("Đã cập nhật món.")
+                    st.success(
+                        "Đã cập nhật món."
+                    )
 
                     st.rerun()
 
-            with button_col2:
+            with delete_col:
 
                 if st.button(
                     "🗑️ XÓA MÓN",
-                    key=f"delete_product_{product['id']}"
+                    key=(
+                        f"delete_product_"
+                        f"{product['id']}"
+                    ),
+                    use_container_width=True
                 ):
 
-                    st.session_state.data["products"].remove(
+                    st.session_state.data[
+                        "products"
+                    ].remove(
                         product
                     )
 
                     save_data()
 
-                    st.success("Đã xóa món.")
+                    st.success(
+                        "Đã xóa món."
+                    )
 
                     st.rerun()
 
 
 # ============================================================
-# 4. QUẢN LÝ TOPPING
+# ============================================================
+# 5. QUẢN LÝ TOPPING - CHỈ ADMIN
+# ============================================================
 # ============================================================
 
 elif menu == "🥤 Quản lý topping":
 
-    st.header("🥤 QUẢN LÝ TOPPING")
+    if not st.session_state.admin_logged_in:
 
-    st.subheader("➕ Thêm topping")
+        st.error(
+            "🔒 Bạn phải đăng nhập Admin."
+        )
 
-    with st.form("add_topping_form"):
+        st.stop()
+
+    st.header(
+        "🥤 QUẢN LÝ TOPPING"
+    )
+
+    st.success(
+        "🔓 Quyền Admin đang hoạt động."
+    )
+
+    # --------------------------------------------------------
+    # THÊM TOPPING
+    # --------------------------------------------------------
+
+    st.subheader(
+        "➕ THÊM TOPPING"
+    )
+
+    with st.form(
+        "add_topping_form"
+    ):
 
         topping_name = st.text_input(
             "Tên topping"
@@ -1526,7 +2260,10 @@ elif menu == "🥤 Quản lý topping":
 
         topping_status = st.selectbox(
             "Trạng thái",
-            ["Còn hàng", "Hết hàng"]
+            [
+                "Còn hàng",
+                "Hết hàng"
+            ]
         )
 
         topping_submit = st.form_submit_button(
@@ -1536,107 +2273,162 @@ elif menu == "🥤 Quản lý topping":
 
     if topping_submit:
 
-        if not topping_name.strip():
+        topping_name = topping_name.strip()
 
-            st.error("Vui lòng nhập tên topping.")
+        if not topping_name:
+
+            st.error(
+                "Vui lòng nhập tên topping."
+            )
 
         else:
 
             new_topping = {
 
                 "id": get_next_id(
-                    st.session_state.data["toppings"]
+                    st.session_state.data[
+                        "toppings"
+                    ]
                 ),
 
-                "name": topping_name.strip(),
+                "name": topping_name,
 
                 "price": topping_price,
 
                 "status": topping_status,
 
                 "visible": True
+
             }
 
-            st.session_state.data["toppings"].append(
+            st.session_state.data[
+                "toppings"
+            ].append(
                 new_topping
             )
 
             save_data()
 
-            st.success("Đã thêm topping.")
+            st.success(
+                "Đã thêm topping."
+            )
 
             st.rerun()
 
     st.divider()
 
-    st.subheader("📋 Danh sách topping")
+    # --------------------------------------------------------
+    # DANH SÁCH TOPPING
+    # --------------------------------------------------------
 
-    for topping in st.session_state.data["toppings"]:
+    st.subheader(
+        "📋 DANH SÁCH TOPPING"
+    )
+
+    for topping in st.session_state.data[
+        "toppings"
+    ]:
 
         with st.expander(
-            f"{topping['name']} – {money(topping['price'])}"
+            f"🧋 {topping['name']} "
+            f"– {money(topping['price'])}"
         ):
 
             edit_name = st.text_input(
                 "Tên topping",
                 value=topping["name"],
-                key=f"top_name_{topping['id']}"
+                key=(
+                    f"top_name_"
+                    f"{topping['id']}"
+                )
             )
 
             edit_price = st.number_input(
                 "Giá",
                 min_value=0,
-                value=int(topping["price"]),
+                value=int(
+                    topping["price"]
+                ),
                 step=1000,
-                key=f"top_price_{topping['id']}"
+                key=(
+                    f"top_price_"
+                    f"{topping['id']}"
+                )
             )
 
             edit_status = st.selectbox(
                 "Trạng thái",
-                ["Còn hàng", "Hết hàng"],
+                [
+                    "Còn hàng",
+                    "Hết hàng"
+                ],
                 index=(
                     0
-                    if topping["status"] == "Còn hàng"
+                    if topping["status"]
+                    == "Còn hàng"
                     else 1
                 ),
-                key=f"top_status_{topping['id']}"
+                key=(
+                    f"top_status_"
+                    f"{topping['id']}"
+                )
             )
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3 = st.columns(
+                3
+            )
 
             with col1:
 
                 if st.button(
-                    "💾 Lưu",
-                    key=f"save_top_{topping['id']}"
+                    "💾 LƯU",
+                    key=(
+                        f"save_top_"
+                        f"{topping['id']}"
+                    ),
+                    use_container_width=True
                 ):
 
-                    topping["name"] = edit_name.strip()
+                    topping["name"] = (
+                        edit_name.strip()
+                    )
 
-                    topping["price"] = edit_price
+                    topping["price"] = (
+                        edit_price
+                    )
 
-                    topping["status"] = edit_status
+                    topping["status"] = (
+                        edit_status
+                    )
 
                     save_data()
 
-                    st.success("Đã cập nhật.")
+                    st.success(
+                        "Đã cập nhật topping."
+                    )
 
                     st.rerun()
 
             with col2:
 
                 visible_text = (
-                    "🙈 Ẩn"
+                    "🙈 ẨN"
                     if topping["visible"]
-                    else "👁️ Hiện"
+                    else "👁️ HIỆN"
                 )
 
                 if st.button(
                     visible_text,
-                    key=f"visible_top_{topping['id']}"
+                    key=(
+                        f"visible_top_"
+                        f"{topping['id']}"
+                    ),
+                    use_container_width=True
                 ):
 
-                    topping["visible"] = not topping["visible"]
+                    topping["visible"] = (
+                        not topping["visible"]
+                    )
 
                     save_data()
 
@@ -1645,17 +2437,82 @@ elif menu == "🥤 Quản lý topping":
             with col3:
 
                 if st.button(
-                    "🗑️ Xóa",
-                    key=f"delete_top_{topping['id']}"
+                    "🗑️ XÓA",
+                    key=(
+                        f"delete_top_"
+                        f"{topping['id']}"
+                    ),
+                    use_container_width=True
                 ):
 
-                    st.session_state.data["toppings"].remove(
+                    st.session_state.data[
+                        "toppings"
+                    ].remove(
                         topping
                     )
 
                     save_data()
 
+                    st.success(
+                        "Đã xóa topping."
+                    )
+
                     st.rerun()
+
+
+# ============================================================
+# ============================================================
+# 6. TÀI KHOẢN ADMIN
+# ============================================================
+# ============================================================
+
+elif menu == "⚙️ Tài khoản Admin":
+
+    if not st.session_state.admin_logged_in:
+
+        st.error(
+            "🔒 Bạn phải đăng nhập Admin."
+        )
+
+        st.stop()
+
+    st.header(
+        "⚙️ TÀI KHOẢN ADMIN"
+    )
+
+    st.success(
+        "🔓 Bạn đang đăng nhập với quyền Admin."
+    )
+
+    st.write(
+        f"👤 **Username:** {ADMIN_USERNAME}"
+    )
+
+    st.write(
+        "🔐 **Mật khẩu:** ********"
+    )
+
+    st.info(
+        """
+        Mật khẩu được lấy từ Streamlit Secrets.
+
+        Nếu bạn chưa thiết lập Secrets,
+        hệ thống đang sử dụng tài khoản test mặc định.
+        """
+    )
+
+    st.divider()
+
+    st.subheader(
+        "🚪 Đăng xuất"
+    )
+
+    if st.button(
+        "🚪 ĐĂNG XUẤT ADMIN",
+        type="primary"
+    ):
+
+        admin_logout()
 
 
 # ============================================================
@@ -1664,11 +2521,23 @@ elif menu == "🥤 Quản lý topping":
 
 st.sidebar.divider()
 
+if st.session_state.admin_logged_in:
+
+    st.sidebar.success(
+        "🔓 ADMIN MODE"
+    )
+
+else:
+
+    st.sidebar.info(
+        "👤 USER MODE"
+    )
+
 st.sidebar.caption(
     "🧋 Milk Tea Order & Billing"
 )
 
 st.sidebar.caption(
-    "Quản lý món • Order • Tính bill • Xuất hóa đơn"
+    "Order • Tính bill • Quản lý món • Admin"
 )
 ```
