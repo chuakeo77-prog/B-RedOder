@@ -681,6 +681,11 @@ if "last_paid_order_id" not in st.session_state:
     st.session_state.last_paid_order_id = None
 
 
+if "editing_cart_index" not in st.session_state:
+
+    st.session_state.editing_cart_index = None
+
+
 # ============================================================
 # HÀM ĐỊNH DẠNG TIỀN
 # ============================================================
@@ -841,6 +846,7 @@ def reset_order():
 
     st.session_state.customer_name = ""
     st.session_state.editing_order_id = None
+    st.session_state.editing_cart_index = None
 
     st.session_state.order_id = datetime.now().strftime(
         "%Y%m%d%H%M%S"
@@ -1558,25 +1564,29 @@ elif menu == "🛒 Đặt hàng":
 
     if not st.session_state.cart:
         st.info("Chưa có món trong đơn. Hãy chọn nhiều món ở khu vực phía trên.")
+        st.session_state.editing_cart_index = None
     else:
+        # --------------------------------------------------------
+        # HIỂN THỊ TỪNG MÓN + SỬA TRỰC TIẾP SAU KHI ĐÃ THÊM VÀO ĐƠN
+        # --------------------------------------------------------
         for index, item in enumerate(st.session_state.cart):
             item_total = calculate_item_total(item)
 
             toppings_text = ", ".join(
-                topping["name"] for topping in item["toppings"]
-            ) if item["toppings"] else "Không"
+                topping.get("name", "") for topping in item.get("toppings", [])
+            ) if item.get("toppings") else "Không"
 
             st.markdown(
                 f"""
                 <div class="order-card">
-                    <div class="order-title">🧋 {index + 1}. {html.escape(item['name'])}</div>
+                    <div class="order-title">🧋 {index + 1}. {html.escape(item.get('name', 'Món'))}</div>
                     <div class="order-detail">
-                        📏 <b>Size:</b> {item['size']}<br>
-                        🔢 <b>Số lượng:</b> {item['quantity']}<br>
-                        🍬 <b>Đường:</b> {item['sugar']}%<br>
-                        🧊 <b>Đá:</b> {item['ice']}%<br>
+                        📏 <b>Size:</b> {item.get('size', 'S')}<br>
+                        🔢 <b>Số lượng:</b> {item.get('quantity', 1)}<br>
+                        🍬 <b>Đường:</b> {item.get('sugar', 100)}%<br>
+                        🧊 <b>Đá:</b> {item.get('ice', 100)}%<br>
                         🧋 <b>Topping:</b> {html.escape(toppings_text)}<br>
-                        📝 <b>Ghi chú:</b> {html.escape(item['notes'] or 'Không')}<br>
+                        📝 <b>Ghi chú:</b> {html.escape(item.get('notes', '') or 'Không')}<br>
                         💰 <b>Thành tiền:</b> {money(item_total)}
                     </div>
                 </div>
@@ -1584,7 +1594,26 @@ elif menu == "🛒 Đặt hàng":
                 unsafe_allow_html=True
             )
 
-            _, delete_col = st.columns([6, 1])
+            edit_col, delete_col = st.columns([5, 1])
+
+            with edit_col:
+                edit_label = (
+                    "✏️ ĐANG SỬA MÓN NÀY"
+                    if st.session_state.editing_cart_index == index
+                    else "✏️ SỬA MÓN NÀY"
+                )
+                if st.button(
+                    edit_label,
+                    key=f"edit_cart_{index}",
+                    use_container_width=True,
+                    type="primary" if st.session_state.editing_cart_index == index else "secondary"
+                ):
+                    if st.session_state.editing_cart_index == index:
+                        st.session_state.editing_cart_index = None
+                    else:
+                        st.session_state.editing_cart_index = index
+                    st.rerun()
+
             with delete_col:
                 if st.button(
                     "🗑️ Xóa món",
@@ -1592,9 +1621,202 @@ elif menu == "🛒 Đặt hàng":
                     use_container_width=True
                 ):
                     st.session_state.cart.pop(index)
+                    if st.session_state.editing_cart_index == index:
+                        st.session_state.editing_cart_index = None
+                    elif (
+                        st.session_state.editing_cart_index is not None
+                        and st.session_state.editing_cart_index > index
+                    ):
+                        st.session_state.editing_cart_index -= 1
                     st.rerun()
 
+            # ----------------------------------------------------
+            # FORM SỬA MÓN ĐÃ THÊM VÀO CART
+            # ----------------------------------------------------
+            if st.session_state.editing_cart_index == index:
+                current_item = st.session_state.cart[index]
+
+                st.markdown(
+                    """
+                    <div class="item-config-card">
+                        <div class="item-config-title">✏️ CHỈNH SỬA MÓN TRONG ĐƠN 💕</div>
+                        <div class="cute-subtitle">
+                            Bạn có thể thay đổi món, size, số lượng, đường, đá, topping và ghi chú.
+                            Giá tiền sẽ tự động tính lại sau khi lưu.
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                product_options = [
+                    product
+                    for product in st.session_state.data["products"]
+                    if product.get("status") == "Còn hàng"
+                ]
+
+                if not product_options:
+                    st.warning("Hiện không có món nào còn hàng để chỉnh sửa.")
+                else:
+                    product_labels = [
+                        f"{product['name']} • {product.get('category', '')} • {money(product['price'])}"
+                        for product in product_options
+                    ]
+                    label_to_product = dict(zip(product_labels, product_options))
+
+                    current_product = next(
+                        (
+                            product for product in product_options
+                            if product.get("name") == current_item.get("name")
+                        ),
+                        None
+                    )
+
+                    current_label = None
+                    if current_product:
+                        current_label = next(
+                            (
+                                label for label, product in label_to_product.items()
+                                if product is current_product
+                            ),
+                            None
+                        )
+
+                    selected_label = st.selectbox(
+                        "🧋 Món",
+                        product_labels,
+                        index=(product_labels.index(current_label) if current_label in product_labels else 0),
+                        key=f"edit_product_{index}"
+                    )
+                    selected_product = label_to_product[selected_label]
+
+                    size_options = ["S", "M", "L"]
+                    current_size = current_item.get("size", "S")
+                    if current_size not in size_options:
+                        current_size = "S"
+
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        edit_size = st.selectbox(
+                            "🎀 Size",
+                            size_options,
+                            index=size_options.index(current_size),
+                            key=f"edit_size_{index}"
+                        )
+                    with c2:
+                        edit_quantity = st.number_input(
+                            "🐻 Số lượng",
+                            min_value=1,
+                            max_value=100,
+                            value=max(1, int(current_item.get("quantity", 1))),
+                            step=1,
+                            key=f"edit_quantity_{index}"
+                        )
+                    with c3:
+                        sugar_options = [100, 70, 50, 30, 10, 0]
+                        current_sugar = int(current_item.get("sugar", 100))
+                        if current_sugar not in sugar_options:
+                            current_sugar = 100
+                        edit_sugar = st.selectbox(
+                            "🍬 Đường",
+                            sugar_options,
+                            index=sugar_options.index(current_sugar),
+                            format_func=lambda value: f"{value}%",
+                            key=f"edit_sugar_{index}"
+                        )
+
+                    ice_options = [100, 70, 50, 30, 10, 0]
+                    current_ice = int(current_item.get("ice", 100))
+                    if current_ice not in ice_options:
+                        current_ice = 100
+
+                    edit_ice = st.selectbox(
+                        "🧊 Đá",
+                        ice_options,
+                        index=ice_options.index(current_ice),
+                        format_func=lambda value: f"{value}%",
+                        key=f"edit_ice_{index}"
+                    )
+
+                    available_toppings = [
+                        topping
+                        for topping in st.session_state.data["toppings"]
+                        if topping.get("visible", True)
+                        and topping.get("status") == "Còn hàng"
+                    ]
+                    topping_labels = [
+                        f"{topping['name']} (+{money(topping['price'])})"
+                        for topping in available_toppings
+                    ]
+                    topping_map = dict(zip(topping_labels, available_toppings))
+
+                    current_topping_names = {
+                        topping.get("name")
+                        for topping in current_item.get("toppings", [])
+                    }
+                    default_toppings = [
+                        label for label, topping in topping_map.items()
+                        if topping.get("name") in current_topping_names
+                    ]
+
+                    edit_topping_labels = st.multiselect(
+                        "🍓 Topping — có thể chọn nhiều",
+                        topping_labels,
+                        default=default_toppings,
+                        key=f"edit_toppings_{index}"
+                    )
+
+                    edit_notes = st.text_area(
+                        "💬 Ghi chú",
+                        value=current_item.get("notes", "") or "",
+                        placeholder="Ví dụ: ít ngọt hơn, để riêng topping, mang về...",
+                        key=f"edit_notes_{index}"
+                    )
+
+                    edit_size_price = selected_product.get("sizes", {}).get(edit_size, 0)
+                    edit_preview = {
+                        "name": selected_product["name"],
+                        "price": selected_product["price"],
+                        "size": edit_size,
+                        "size_price": edit_size_price,
+                        "quantity": edit_quantity,
+                        "sugar": edit_sugar,
+                        "ice": edit_ice,
+                        "toppings": [topping_map[label] for label in edit_topping_labels],
+                        "notes": edit_notes.strip()
+                    }
+                    edit_preview_total = calculate_item_total(edit_preview)
+
+                    st.info(
+                        f"💗 Sau khi sửa: {edit_quantity} ly • "
+                        f"Size {edit_size} • {edit_sugar}% đường • {edit_ice}% đá • "
+                        f"Thành tiền: **{money(edit_preview_total)}**"
+                    )
+
+                    save_edit_col, cancel_edit_col = st.columns(2)
+                    with save_edit_col:
+                        if st.button(
+                            "💾 LƯU THAY ĐỔI MÓN",
+                            type="primary",
+                            use_container_width=True,
+                            key=f"save_edit_cart_{index}"
+                        ):
+                            st.session_state.cart[index] = edit_preview
+                            st.session_state.editing_cart_index = None
+                            st.success("✅ Đã cập nhật món trong đơn hàng. Tổng tiền đã được tính lại.")
+                            st.rerun()
+
+                    with cancel_edit_col:
+                        if st.button(
+                            "↩️ HỦY CHỈNH SỬA",
+                            use_container_width=True,
+                            key=f"cancel_edit_cart_{index}"
+                        ):
+                            st.session_state.editing_cart_index = None
+                            st.rerun()
+
         total = calculate_cart_total()
+
 
         st.markdown(
             f"""
