@@ -37,7 +37,7 @@ DATA_FILE = "menu_data.json"
 #
 # ============================================================
 
-DEFAULT_ADMIN_USERNAME = "B-Red"
+DEFAULT_ADMIN_USERNAME = "admin"
 DEFAULT_ADMIN_PASSWORD = "123456"
 
 
@@ -66,491 +66,271 @@ ADMIN_PASSWORD = get_admin_password()
 st.markdown(
     """
 <style>
-
 /* =========================================================
-   GIAO DIỆN TỔNG THỂ
+   MODERN SLATE & MINIMAL
+   Primary: #2563EB
+   Secondary: #1E3A8A
+   Background: #F8FAFC
+   Surface: #FFFFFF
+   Text Primary: #0F172A
+   Text Secondary: #475569
    ========================================================= */
 
 .stApp {
-    background: linear-gradient(135deg, #FFF8F0 0%, #FFFDF9 48%, #F8F1E8 100%);
-    color: #2F241F;
+    background: #F8FAFC;
+    color: #0F172A;
 }
 
 .main {
-    background: transparent;
+    background: #F8FAFC;
 }
 
-/* Khu vực nội dung */
 .block-container {
-    padding-top: 2rem;
+    max-width: 1320px;
+    padding-top: 1.8rem;
     padding-bottom: 3rem;
-    max-width: 1250px;
 }
 
-/* Tiêu đề */
 h1, h2, h3, h4 {
-    color: #5A2E18 !important;
+    color: #0F172A !important;
     font-weight: 800 !important;
 }
 
 h1 {
     text-align: center;
-    font-size: 2.35rem !important;
-    margin-bottom: 0.3rem !important;
+    font-size: 2.25rem !important;
+    letter-spacing: -0.5px;
 }
 
-h2 {
-    margin-top: 1rem !important;
-}
-
-h3 {
-    color: #7A3E20 !important;
-}
+h2 { color: #1E3A8A !important; }
+h3 { color: #1E3A8A !important; }
 
 p, label, .stMarkdown, .stCaption {
-    color: #352923;
+    color: #475569;
 }
 
-/* =========================================================
-   SIDEBAR
-   ========================================================= */
-
+/* SIDEBAR */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #4B2414 0%, #6B341B 55%, #8B4513 100%);
-    border-right: 3px solid #D99A5B;
+    background: linear-gradient(180deg, #1E3A8A 0%, #172554 100%);
+    border-right: 1px solid #1E40AF;
 }
 
 section[data-testid="stSidebar"] * {
-    color: #FFF8EF !important;
+    color: #FFFFFF !important;
 }
 
 section[data-testid="stSidebar"] .stRadio label {
-    background: rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.08);
     border-radius: 10px;
     padding: 8px 10px;
     margin: 3px 0;
 }
 
 section[data-testid="stSidebar"] .stRadio label:hover {
-    background: rgba(255,255,255,0.20);
+    background: rgba(37,99,235,0.55);
 }
 
-section[data-testid="stSidebar"] [data-testid="stAlert"] {
-    background: rgba(255,255,255,0.13);
-    border: 1px solid rgba(255,255,255,0.25);
-}
-
-/* =========================================================
-   HEADER
-   ========================================================= */
-
+/* HEADER */
 .app-header {
-    background: linear-gradient(135deg, #6B341B, #A0522D);
-    color: white;
-    padding: 25px 30px;
-    border-radius: 22px;
-    margin-bottom: 22px;
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(91, 45, 24, 0.18);
-}
-
-.app-header h1 {
-    color: white !important;
-    margin: 0 !important;
-}
-
-.app-header p {
-    color: #FFF5E9 !important;
-    margin: 8px 0 0;
-    font-size: 1rem;
-}
-
-/* =========================================================
-   CARD MÓN / ĐƠN HÀNG
-   ========================================================= */
-
-.order-card,
-.menu-card {
     background: #FFFFFF;
-    color: #2F241F;
-    padding: 20px;
-    border-radius: 18px;
-    border: 2px solid #E8D4C4;
-    margin-bottom: 16px;
-    box-shadow: 0 5px 18px rgba(79, 42, 24, 0.09);
+    border: 1px solid #E2E8F0;
+    border-left: 6px solid #2563EB;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 5px 18px rgba(15,23,42,0.06);
 }
 
-.order-card:hover,
-.menu-card:hover {
-    border-color: #C98A5B;
-    box-shadow: 0 8px 24px rgba(79, 42, 24, 0.14);
+/* CARDS */
+.order-card, .menu-card {
+    background: #FFFFFF;
+    color: #0F172A;
+    padding: 18px;
+    border-radius: 14px;
+    border: 1px solid #E2E8F0;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 14px rgba(15,23,42,0.06);
+}
+
+.order-card:hover, .menu-card:hover {
+    border-color: #BFDBFE;
+    box-shadow: 0 6px 18px rgba(37,99,235,0.09);
 }
 
 .order-title {
-    font-size: 21px;
+    font-size: 19px;
     font-weight: 800;
-    color: #6B341B !important;
-    margin-bottom: 10px;
+    color: #1E3A8A;
+    margin-bottom: 8px;
 }
 
 .order-detail {
-    font-size: 15px;
-    line-height: 1.9;
-    color: #3D3029 !important;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.8;
 }
 
-.price-text {
-    color: #C45120 !important;
+.order-detail b { color: #0F172A; }
+
+/* ORDER BUILDER */
+.order-builder {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 20px;
+    margin: 12px 0 20px;
+    box-shadow: 0 5px 18px rgba(15,23,42,0.05);
+}
+
+.builder-title {
+    color: #1E3A8A;
     font-size: 20px;
     font-weight: 800;
+    margin-bottom: 4px;
 }
 
-/* =========================================================
-   TỔNG TIỀN
-   ========================================================= */
+.item-config-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 14px;
+    padding: 15px;
+    margin: 12px 0;
+}
 
+.item-config-title {
+    color: #0F172A;
+    font-weight: 800;
+    font-size: 17px;
+}
+
+/* TOTAL */
 .total-box {
-    background: linear-gradient(135deg, #FFF0D9 0%, #FFE4C4 100%);
-    color: #4B2818;
-    padding: 25px;
-    border-radius: 20px;
-    border: 3px solid #D2691E;
+    background: #FFFFFF;
+    padding: 22px;
+    border-radius: 16px;
+    border: 2px solid #2563EB;
     text-align: center;
     margin-top: 18px;
-    box-shadow: 0 8px 24px rgba(176, 91, 31, 0.16);
+    box-shadow: 0 7px 22px rgba(37,99,235,0.10);
 }
 
 .total-money {
-    font-size: 34px;
+    font-size: 30px;
     font-weight: 900;
-    color: #B83B08 !important;
-    margin: 10px 0;
+    color: #2563EB;
 }
 
-/* =========================================================
-   ADMIN / LOGIN
-   ========================================================= */
-
+/* ADMIN / LOGIN */
 .admin-box {
     background: #FFFFFF;
-    color: #2F241F;
-    border: 3px solid #8B4513;
-    border-radius: 20px;
-    padding: 30px;
-    margin: 22px auto;
+    border: 1px solid #CBD5E1;
+    border-top: 4px solid #1E3A8A;
+    border-radius: 16px;
+    padding: 25px;
+    margin: 20px auto;
     max-width: 720px;
-    box-shadow: 0 10px 30px rgba(91, 45, 24, 0.14);
+    box-shadow: 0 8px 24px rgba(15,23,42,0.07);
 }
 
 .login-title {
     text-align: center;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 900;
-    color: #6B341B !important;
-    margin-bottom: 15px;
+    color: #1E3A8A;
 }
 
-.admin-success {
-    background: #EAF7EA;
-    color: #205B25;
-    border: 1px solid #75B879;
-    padding: 13px;
-    border-radius: 10px;
+/* INPUTS */
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea,
+.stSelectbox div[data-baseweb="select"] > div,
+.stMultiSelect div[data-baseweb="select"] > div {
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    border-color: #CBD5E1 !important;
 }
 
-/* =========================================================
-   STREAMLIT INPUT - LÀM NỔI BẬT
-   ========================================================= */
-
-div[data-baseweb="input"],
-div[data-baseweb="select"],
-div[data-baseweb="textarea"] {
-    background-color: #FFFFFF !important;
-    border-radius: 10px !important;
+.stTextInput input:focus,
+.stNumberInput input:focus,
+.stTextArea textarea:focus {
+    border-color: #2563EB !important;
+    box-shadow: 0 0 0 1px #2563EB !important;
 }
 
-div[data-baseweb="input"] > div,
-div[data-baseweb="select"] > div,
-div[data-baseweb="textarea"] > div {
-    background-color: #FFFFFF !important;
-    border: 1px solid #CDB7A6 !important;
-    border-radius: 10px !important;
-}
-
-div[data-baseweb="input"] input,
-div[data-baseweb="textarea"] textarea {
-    color: #241B17 !important;
-    background-color: #FFFFFF !important;
-    font-weight: 500 !important;
-}
-
-div[data-baseweb="select"] * {
-    color: #241B17 !important;
-}
-
-div[data-baseweb="input"]:focus-within > div,
-div[data-baseweb="select"]:focus-within > div,
-div[data-baseweb="textarea"]:focus-within > div {
-    border: 2px solid #C7652C !important;
-    box-shadow: 0 0 0 2px rgba(199,101,44,0.12);
-}
-
-/* Label của input */
-.stTextInput label,
-.stNumberInput label,
-.stSelectbox label,
-.stMultiSelect label,
-.stTextArea label,
-.stRadio label {
-    color: #4A3023 !important;
-    font-weight: 700 !important;
-}
-
-/* =========================================================
-   BUTTON
-   ========================================================= */
-
+/* BUTTONS */
 .stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    border-radius: 10px !important;
+    border: 1px solid #2563EB !important;
+    font-weight: 700 !important;
+    transition: all .15s ease;
+}
+
+.stButton > button[kind="primary"],
+.stFormSubmitButton > button[kind="primary"] {
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+}
+
+.stButton > button[kind="primary"]:hover,
+.stFormSubmitButton > button[kind="primary"]:hover {
+    background: #1D4ED8 !important;
+    border-color: #1D4ED8 !important;
+}
+
 .stDownloadButton > button {
-    border-radius: 11px !important;
-    min-height: 44px;
-    font-weight: 800 !important;
-    border: 1px solid #B96738 !important;
-    background: #FFF7EF !important;
-    color: #6B341B !important;
-    transition: all 0.2s ease;
+    background: #FFFFFF !important;
+    color: #1E3A8A !important;
 }
 
-.stButton > button:hover,
 .stDownloadButton > button:hover {
-    background: #8B4513 !important;
-    color: white !important;
-    border-color: #8B4513 !important;
-    transform: translateY(-1px);
-    box-shadow: 0 5px 12px rgba(91,45,24,0.18);
+    background: #EFF6FF !important;
 }
 
-.stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #8B4513, #C7652C) !important;
-    color: white !important;
-    border: none !important;
-}
-
-.stButton > button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #6B341B, #A64B20) !important;
-}
-
-/* =========================================================
-   ALERT / INFO / SUCCESS / WARNING
-   ========================================================= */
-
+/* ALERTS */
 div[data-testid="stAlert"] {
-    border-radius: 12px !important;
-    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid #CBD5E1;
 }
 
-div[data-testid="stAlert"][kind="info"] {
-    background: #EEF6FF;
-}
-
-div[data-testid="stAlert"][kind="success"] {
-    background: #EDF9EF;
-}
-
-div[data-testid="stAlert"][kind="warning"] {
-    background: #FFF8E6;
-}
-
-div[data-testid="stAlert"][kind="error"] {
-    background: #FFF0F0;
-}
-
-/* =========================================================
-   EXPANDER / CONTAINER
-   ========================================================= */
-
+/* EXPANDER / CONTAINER */
 div[data-testid="stExpander"] {
     background: #FFFFFF;
-    border: 2px solid #E5D2C3;
-    border-radius: 14px;
-    overflow: hidden;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
 }
 
-div[data-testid="stExpander"] summary {
-    background: #FFF8F1;
-    color: #5A2E18 !important;
-    font-weight: 800;
-}
-
-/* Container có border */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #FFFFFF;
-    border-color: #E3CDBB !important;
-    border-radius: 15px;
+    border-color: #E2E8F0 !important;
+    border-radius: 12px !important;
 }
-
-/* =========================================================
-   DIVIDER
-   ========================================================= */
 
 hr {
-    border: none !important;
-    border-top: 2px solid #E6D3C3 !important;
-    margin: 22px 0 !important;
+    border-color: #E2E8F0 !important;
 }
 
-/* =========================================================
-   TABLE / DATAFRAME
-   ========================================================= */
-
-[data-testid="stDataFrame"] {
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-
-/* =========================================================
-   ORDER MULTI-MON / CART
-   ========================================================= */
-
-.section-hint {
-    background: linear-gradient(90deg, #FFF3E6, #FFF9F2);
-    border-left: 5px solid #D98A45;
-    color: #5A321F !important;
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin: 8px 0 18px;
-}
-
-.product-config-title {
-    font-size: 1.22rem;
+.price-text {
+    color: #2563EB;
+    font-size: 18px;
     font-weight: 800;
-    color: #6B341B !important;
-    margin-bottom: 4px;
 }
 
-.item-preview-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: space-between;
-    background: #FFF7EF;
-    border: 1px solid #E8CDB7;
-    border-radius: 10px;
-    padding: 10px 14px;
-    margin-top: 10px;
-    color: #4A3023 !important;
-}
-
-.item-preview-bar b {
-    color: #B65F1F !important;
-}
-
-.multi-order-total {
-    background: linear-gradient(135deg, #FFF0DE 0%, #FFE4C8 100%);
-    border: 2px solid #D98A45;
-    border-radius: 18px;
-    padding: 18px;
-    margin: 18px 0;
-    text-align: center;
-    box-shadow: 0 6px 18px rgba(121, 66, 27, 0.10);
-}
-
-.multi-order-label {
-    color: #6B341B !important;
-    font-weight: 800;
-    font-size: 0.95rem;
-}
-
-.multi-order-money {
-    color: #B94F16 !important;
-    font-size: 2rem;
-    font-weight: 900;
-    margin: 4px 0;
-}
-
-.multi-order-sub {
-    color: #76513B !important;
-    font-size: 0.9rem;
-}
-
-.cart-count {
-    background: #F7E7D8;
-    color: #5A321F !important;
-    border: 1px solid #E3C3A9;
-    border-radius: 10px;
-    padding: 10px 14px;
-    margin-bottom: 14px;
-}
-
-.detail-pill {
+.badge-blue {
     display: inline-block;
-    background: #FFF3E6;
-    color: #6B341B !important;
-    border: 1px solid #E8CDB7;
-    border-radius: 999px;
+    background: #EFF6FF;
+    color: #1D4ED8;
+    border: 1px solid #BFDBFE;
     padding: 4px 9px;
-    margin: 2px 4px 2px 0;
-    font-size: 0.88rem;
-    font-weight: 600;
-}
-
-.item-price {
-    color: #B94F16 !important;
-    font-size: 1.05rem;
-    font-weight: 800;
-}
-
-.mini-summary {
-    background: linear-gradient(135deg, #6B341B, #A0522D);
-    color: white !important;
-    border-radius: 16px;
-    padding: 13px 17px;
-    text-align: center;
-    box-shadow: 0 5px 16px rgba(91, 45, 24, 0.18);
-}
-
-.mini-summary * {
-    color: white !important;
-}
-
-.mini-summary-title {
-    font-size: 0.85rem;
-    opacity: 0.92;
-}
-
-.mini-summary-number {
-    font-size: 1.2rem;
-    font-weight: 800;
-}
-
-.mini-summary-total {
-    font-size: 1.05rem;
+    border-radius: 999px;
     font-weight: 700;
+    font-size: 13px;
 }
-
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
 
 @media (max-width: 768px) {
-    h1 {
-        font-size: 1.75rem !important;
-    }
-
-    .app-header {
-        padding: 20px 15px;
-    }
-
-    .order-card,
-    .menu-card,
-    .admin-box {
-        padding: 15px;
-    }
-
-    .total-money {
-        font-size: 27px;
-    }
+    .block-container { padding-left: 1rem; padding-right: 1rem; }
+    h1 { font-size: 1.75rem !important; }
+    .total-money { font-size: 25px; }
 }
 
 </style>
@@ -1338,44 +1118,27 @@ if menu == "🔐 Đăng nhập Admin":
 elif menu == "🛒 Đặt hàng":
 
     st.header("🛒 TẠO ĐƠN HÀNG")
-    st.caption("Chọn nhiều món trong cùng một lần order • Tùy chỉnh từng món • Tính bill tự động")
 
     # --------------------------------------------------------
     # THÔNG TIN KHÁCH HÀNG
     # --------------------------------------------------------
-
-    customer_col1, customer_col2 = st.columns([2, 1])
-
-    with customer_col1:
-        customer_name = st.text_input(
-            "👤 Tên khách hàng",
-            value=st.session_state.customer_name,
-            placeholder="Nhập tên khách hàng..."
-        )
-        st.session_state.customer_name = customer_name
-
-    with customer_col2:
-        st.markdown(
-            f"""
-            <div class="mini-summary">
-                <div class="mini-summary-title">🧾 Đơn hiện tại</div>
-                <div class="mini-summary-number">{len(st.session_state.cart)} món</div>
-                <div class="mini-summary-total">{money(calculate_cart_total())}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    st.divider()
+    customer_name = st.text_input(
+        "👤 Tên khách hàng",
+        value=st.session_state.customer_name,
+        placeholder="Nhập tên khách hàng..."
+    )
+    st.session_state.customer_name = customer_name
 
     # --------------------------------------------------------
-    # CHỌN NHIỀU MÓN TRONG MỘT LẦN ORDER
+    # BỘ TẠO ĐƠN NHIỀU MÓN
     # --------------------------------------------------------
-
-    st.subheader("🥤 CHỌN NHIỀU MÓN")
     st.markdown(
-        "<div class='section-hint'>💡 Bạn có thể chọn <b>nhiều món cùng lúc</b>. "
-        "Mỗi món bên dưới có thể tùy chỉnh size, số lượng, đường, đá và topping riêng.</div>",
+        """
+        <div class="order-builder">
+            <div class="builder-title">🛍️ Chọn nhiều món trong một lần Order</div>
+            <div style="color:#475569;">Có thể chọn nhiều danh mục và nhiều món cùng lúc. Sau đó cấu hình riêng cho từng món.</div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1386,172 +1149,187 @@ elif menu == "🛒 Đặt hàng":
     ]
 
     if not visible_categories:
-        st.warning("Hiện chưa có danh mục món.")
+        st.warning("Hiện chưa có danh mục đang hiển thị.")
     else:
-        selected_category = st.selectbox(
-            "📂 Chọn danh mục",
+        selected_categories = st.multiselect(
+            "📂 Danh mục — có thể chọn nhiều",
             visible_categories,
-            key="order_category"
+            default=[visible_categories[0]],
+            help="Chọn một hoặc nhiều danh mục để hiển thị các món tương ứng."
         )
 
         available_products = [
             product
             for product in st.session_state.data["products"]
-            if product.get("category") == selected_category
+            if product.get("category") in selected_categories
             and product.get("status") == "Còn hàng"
-            and product.get("visible", True)
         ]
 
-        if not available_products:
-            st.warning("Danh mục này hiện chưa có món còn hàng.")
+        if not selected_categories:
+            st.info("Hãy chọn ít nhất một danh mục.")
+        elif not available_products:
+            st.warning("Các danh mục đã chọn hiện chưa có món còn hàng.")
         else:
-            product_names = [product["name"] for product in available_products]
+            product_labels = [
+                f"{product['name']} • {product['category']} • {money(product['price'])}"
+                for product in available_products
+            ]
+            label_to_product = dict(zip(product_labels, available_products))
 
-            selected_product_names = st.multiselect(
+            selected_product_labels = st.multiselect(
                 "🧋 Chọn món — có thể chọn nhiều món",
-                product_names,
-                placeholder="Ví dụ: Trà sữa truyền thống, Matcha, Trà vải...",
-                key="order_multi_products"
+                product_labels,
+                help="Bạn có thể chọn 2, 3, 5... món trong cùng một lần Order."
             )
 
-            if selected_product_names:
-                st.success(
-                    f"✅ Đã chọn {len(selected_product_names)} món. "
-                    "Hãy tùy chỉnh từng món bên dưới rồi bấm 'THÊM TẤT CẢ VÀO ĐƠN'."
+            selected_products = [
+                label_to_product[label]
+                for label in selected_product_labels
+            ]
+
+            if selected_products:
+                st.markdown(
+                    f"<span class='badge-blue'>Đã chọn {len(selected_products)} món</span>",
+                    unsafe_allow_html=True
                 )
 
                 configured_items = []
 
-                for product_index, product_name in enumerate(selected_product_names):
-                    product = next(
-                        item for item in available_products
-                        if item["name"] == product_name
+                for product_index, product in enumerate(selected_products):
+                    st.markdown(
+                        f"""
+                        <div class="item-config-card">
+                            <div class="item-config-title">🧋 {product_index + 1}. {html.escape(product['name'])}</div>
+                            <div style="color:#475569; margin-top:4px;">{html.escape(product.get('description', '') or 'Không có mô tả')}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True
                     )
 
-                    with st.container(border=True):
+                    image_col, config_col = st.columns([1, 3])
+
+                    with image_col:
+                        if product.get("image"):
+                            try:
+                                st.image(product["image"], use_container_width=True)
+                            except Exception:
+                                pass
+
                         st.markdown(
-                            f"<div class='product-config-title'>🧋 {product['name']}</div>",
+                            f"<div class='price-text'>Từ {money(product['price'])}</div>",
                             unsafe_allow_html=True
                         )
 
-                        if product.get("description"):
-                            st.caption(product["description"])
+                    with config_col:
+                        size = st.radio(
+                            "📏 Size",
+                            ["S", "M", "L"],
+                            horizontal=True,
+                            key=f"multi_size_{product['id']}"
+                        )
 
-                        config_col1, config_col2, config_col3 = st.columns(3)
+                        size_price = product.get("sizes", {}).get(size, 0)
+                        current_price = product["price"] + size_price
 
-                        with config_col1:
-                            size = st.radio(
-                                "📏 Size",
-                                ["S", "M", "L"],
-                                horizontal=True,
-                                key=f"multi_size_{product_index}_{product.get('id', product_index)}"
-                            )
+                        c1, c2, c3 = st.columns(3)
 
+                        with c1:
                             quantity = st.number_input(
                                 "🔢 Số lượng",
                                 min_value=1,
                                 max_value=100,
                                 value=1,
                                 step=1,
-                                key=f"multi_qty_{product_index}_{product.get('id', product_index)}"
+                                key=f"multi_qty_{product['id']}"
                             )
 
-                        with config_col2:
+                        with c2:
                             sugar = st.selectbox(
-                                "🍬 Mức độ đường",
+                                "🍬 Đường",
                                 [100, 70, 50, 30, 10, 0],
                                 format_func=lambda value: f"{value}%",
-                                key=f"multi_sugar_{product_index}_{product.get('id', product_index)}"
+                                key=f"multi_sugar_{product['id']}"
                             )
 
+                        with c3:
                             ice = st.selectbox(
-                                "🧊 Lượng đá",
+                                "🧊 Đá",
                                 [100, 70, 50, 30, 10, 0],
                                 format_func=lambda value: f"{value}%",
-                                key=f"multi_ice_{product_index}_{product.get('id', product_index)}"
+                                key=f"multi_ice_{product['id']}"
                             )
 
-                        with config_col3:
-                            available_toppings = [
-                                topping
-                                for topping in st.session_state.data["toppings"]
-                                if topping.get("visible", True)
-                                and topping.get("status") == "Còn hàng"
-                            ]
+                        st.caption(f"Giá Size {size}: {money(current_price)} / ly")
 
-                            topping_options = {
-                                f"{topping['name']} (+{money(topping['price'])})": topping
-                                for topping in available_toppings
-                            }
+                        available_toppings = [
+                            topping
+                            for topping in st.session_state.data["toppings"]
+                            if topping.get("visible", True)
+                            and topping.get("status") == "Còn hàng"
+                        ]
 
-                            selected_topping_labels = st.multiselect(
-                                "🧋 Topping",
-                                list(topping_options.keys()),
-                                key=f"multi_toppings_{product_index}_{product.get('id', product_index)}"
-                            )
+                        topping_options = {
+                            f"{topping['name']} (+{money(topping['price'])})": topping
+                            for topping in available_toppings
+                        }
 
-                            selected_toppings = [
-                                topping_options[label]
-                                for label in selected_topping_labels
-                            ]
+                        selected_topping_labels = st.multiselect(
+                            "🧋 Topping — có thể chọn nhiều",
+                            list(topping_options.keys()),
+                            key=f"multi_toppings_{product['id']}"
+                        )
 
-                        notes_col1, notes_col2 = st.columns([1, 1])
+                        selected_toppings = [
+                            topping_options[label]
+                            for label in selected_topping_labels
+                        ]
 
-                        with notes_col1:
-                            notes_options = [
-                                "Nhiều sữa",
-                                "Không lấy ống hút",
-                                "Uống tại chỗ",
-                                "Mang về"
-                            ]
+                        notes_options = [
+                            "Nhiều sữa",
+                            "Không lấy ống hút",
+                            "Uống tại chỗ",
+                            "Mang về"
+                        ]
 
-                            selected_notes = st.multiselect(
-                                "📝 Ghi chú nhanh",
-                                notes_options,
-                                key=f"multi_notes_{product_index}_{product.get('id', product_index)}"
-                            )
+                        selected_notes = st.multiselect(
+                            "📝 Ghi chú nhanh",
+                            notes_options,
+                            key=f"multi_notes_{product['id']}"
+                        )
 
-                        with notes_col2:
-                            custom_note = st.text_input(
-                                "📝 Ghi chú riêng",
-                                placeholder="Ví dụ: Ít ngọt hơn, để riêng topping...",
-                                key=f"multi_custom_note_{product_index}_{product.get('id', product_index)}"
-                            )
+                        custom_note = st.text_input(
+                            "Ghi chú riêng",
+                            placeholder="Ví dụ: ít ngọt hơn, để riêng topping...",
+                            key=f"multi_custom_note_{product['id']}"
+                        )
 
                         notes = ", ".join(selected_notes)
                         if custom_note.strip():
-                            if notes:
-                                notes += ", "
-                            notes += custom_note.strip()
+                            notes = f"{notes}, {custom_note.strip()}" if notes else custom_note.strip()
 
-                        size_price = product.get("sizes", {}).get(size, 0)
+                    preview_item = {
+                        "name": product["name"],
+                        "price": product["price"],
+                        "size": size,
+                        "size_price": size_price,
+                        "quantity": quantity,
+                        "sugar": sugar,
+                        "ice": ice,
+                        "toppings": selected_toppings,
+                        "notes": notes
+                    }
 
-                        preview_item = {
-                            "name": product["name"],
-                            "price": product["price"],
-                            "size_price": size_price,
-                            "quantity": quantity,
-                            "size": size,
-                            "sugar": sugar,
-                            "ice": ice,
-                            "toppings": selected_toppings,
-                            "notes": notes
-                        }
+                    preview_total = calculate_item_total(preview_item)
+                    configured_items.append(preview_item)
 
-                        item_total = calculate_item_total(preview_item)
-                        configured_items.append(preview_item)
+                    st.info(
+                        f"💰 {product['name']} • {quantity} ly • Thành tiền: **{money(preview_total)}**"
+                    )
+                    st.divider()
 
-                        st.markdown(
-                            f"""
-                            <div class="item-preview-bar">
-                                <span>💵 Đơn giá Size {size}: <b>{money(product['price'] + size_price)}</b></span>
-                                <span>🔢 SL: <b>{quantity}</b></span>
-                                <span>💰 Thành tiền: <b>{money(item_total)}</b></span>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
+                # ------------------------------------------------
+                # TỔNG XEM TRƯỚC CÁC MÓN ĐÃ CHỌN
+                # ------------------------------------------------
                 selected_total = sum(
                     calculate_item_total(item)
                     for item in configured_items
@@ -1559,56 +1337,38 @@ elif menu == "🛒 Đặt hàng":
 
                 st.markdown(
                     f"""
-                    <div class="multi-order-total">
-                        <div class="multi-order-label">🧾 TỔNG CÁC MÓN ĐANG CHỌN</div>
-                        <div class="multi-order-money">{money(selected_total)}</div>
-                        <div class="multi-order-sub">{len(configured_items)} loại món • sẽ được thêm vào cùng một đơn</div>
+                    <div class="total-box">
+                        <div style="color:#475569;">🛍️ {len(configured_items)} món đã chọn</div>
+                        <div class="total-money">{money(selected_total)}</div>
+                        <div style="color:#475569;">Tổng tạm tính trước khi thêm vào đơn</div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-                add_col1, add_col2 = st.columns([3, 1])
-
-                with add_col1:
-                    if st.button(
-                        "➕ THÊM TẤT CẢ MÓN VÀO ĐƠN",
-                        type="primary",
-                        use_container_width=True,
-                        key="add_all_multi_items"
-                    ):
-                        st.session_state.cart.extend(configured_items)
-                        st.success(
-                            f"🎉 Đã thêm {len(configured_items)} loại món vào đơn hàng!"
-                        )
-                        st.rerun()
-
-                with add_col2:
-                    if st.button(
-                        "🔄 BỎ CHỌN",
-                        use_container_width=True,
-                        key="clear_multi_selection"
-                    ):
-                        st.session_state.order_multi_products = []
-                        st.rerun()
+                if st.button(
+                    f"➕ THÊM TẤT CẢ {len(configured_items)} MÓN VÀO ĐƠN",
+                    type="primary",
+                    use_container_width=True,
+                    key="add_all_selected_products"
+                ):
+                    st.session_state.cart.extend(configured_items)
+                    st.success(
+                        f"Đã thêm {len(configured_items)} món vào đơn hàng!"
+                    )
+                    st.rerun()
             else:
-                st.info("👆 Hãy chọn một hoặc nhiều món ở ô phía trên để bắt đầu order.")
+                st.info("Chưa chọn món. Hãy chọn nhiều món ở ô phía trên để cấu hình.")
 
     # ========================================================
     # CHI TIẾT ĐƠN HÀNG
     # ========================================================
-
     st.divider()
     st.header("🧾 CHI TIẾT ĐƠN HÀNG")
 
     if not st.session_state.cart:
-        st.info("Chưa có món trong đơn. Hãy chọn nhiều món ở phía trên và bấm 'THÊM TẤT CẢ MÓN VÀO ĐƠN'.")
+        st.info("Chưa có món trong đơn. Hãy chọn nhiều món ở khu vực phía trên.")
     else:
-        st.markdown(
-            f"<div class='cart-count'>🛒 Đơn hàng hiện có <b>{len(st.session_state.cart)} loại món</b></div>",
-            unsafe_allow_html=True
-        )
-
         for index, item in enumerate(st.session_state.cart):
             item_total = calculate_item_total(item)
 
@@ -1621,22 +1381,21 @@ elif menu == "🛒 Đặt hàng":
                 <div class="order-card">
                     <div class="order-title">🧋 {index + 1}. {html.escape(item['name'])}</div>
                     <div class="order-detail">
-                        <span class="detail-pill">📏 Size {item['size']}</span>
-                        <span class="detail-pill">🔢 SL {item['quantity']}</span>
-                        <span class="detail-pill">🍬 Đường {item['sugar']}%</span>
-                        <span class="detail-pill">🧊 Đá {item['ice']}%</span>
-                        <br><br>
+                        📏 <b>Size:</b> {item['size']}<br>
+                        🔢 <b>Số lượng:</b> {item['quantity']}<br>
+                        🍬 <b>Đường:</b> {item['sugar']}%<br>
+                        🧊 <b>Đá:</b> {item['ice']}%<br>
                         🧋 <b>Topping:</b> {html.escape(toppings_text)}<br>
                         📝 <b>Ghi chú:</b> {html.escape(item['notes'] or 'Không')}<br>
-                        💰 <b>Thành tiền:</b> <span class="item-price">{money(item_total)}</span>
+                        💰 <b>Thành tiền:</b> {money(item_total)}
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-            delete_col1, delete_col2 = st.columns([5, 1])
-            with delete_col2:
+            _, delete_col = st.columns([6, 1])
+            with delete_col:
                 if st.button(
                     "🗑️ Xóa",
                     key=f"delete_cart_{index}",
@@ -1645,30 +1404,21 @@ elif menu == "🛒 Đặt hàng":
                     st.session_state.cart.pop(index)
                     st.rerun()
 
-        # ----------------------------------------------------
-        # TỔNG TIỀN
-        # ----------------------------------------------------
-
         total = calculate_cart_total()
 
         st.markdown(
             f"""
             <div class="total-box">
-                <div class="total-customer">👤 Khách hàng: <b>{html.escape(st.session_state.customer_name or 'Khách lẻ')}</b></div>
-                <div class="total-items">🧾 Tổng số loại món: <b>{len(st.session_state.cart)}</b></div>
+                <div style="color:#475569;">👤 Khách hàng: <b style="color:#0F172A;">{html.escape(st.session_state.customer_name or 'Khách lẻ')}</b></div>
+                <div style="margin-top:8px; color:#475569;">🧾 Số món: <b style="color:#0F172A;">{len(st.session_state.cart)}</b></div>
                 <div class="total-money">💰 {money(total)}</div>
-                <div class="total-caption">TỔNG SỐ TIỀN CẦN THANH TOÁN</div>
+                <div style="color:#475569;">TỔNG SỐ TIỀN CẦN THANH TOÁN</div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
         st.divider()
-
-        # ----------------------------------------------------
-        # XUẤT HÓA ĐƠN
-        # ----------------------------------------------------
-
         st.subheader("📤 XUẤT HÓA ĐƠN")
 
         col1, col2, col3 = st.columns(3)
@@ -1697,14 +1447,11 @@ elif menu == "🛒 Đặt hàng":
             if st.button(
                 "🗑️ TẠO ĐƠN MỚI",
                 use_container_width=True,
-                key="new_order_bottom"
+                key="new_order_button"
             ):
                 reset_order()
                 st.rerun()
 
-# 3. QUẢN LÝ DANH MỤC - CHỈ ADMIN
-# ============================================================
-# ============================================================
 
 elif menu == "📋 Quản lý danh mục":
 
