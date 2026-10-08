@@ -37,7 +37,7 @@ DATA_FILE = "menu_data.json"
 #
 # ============================================================
 
-DEFAULT_ADMIN_USERNAME = "admin"
+DEFAULT_ADMIN_USERNAME = "B-Red"
 DEFAULT_ADMIN_PASSWORD = "123456"
 
 
@@ -406,6 +406,127 @@ hr {
 [data-testid="stDataFrame"] {
     border-radius: 12px;
     overflow: hidden;
+}
+
+
+/* =========================================================
+   ORDER MULTI-MON / CART
+   ========================================================= */
+
+.section-hint {
+    background: linear-gradient(90deg, #FFF3E6, #FFF9F2);
+    border-left: 5px solid #D98A45;
+    color: #5A321F !important;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin: 8px 0 18px;
+}
+
+.product-config-title {
+    font-size: 1.22rem;
+    font-weight: 800;
+    color: #6B341B !important;
+    margin-bottom: 4px;
+}
+
+.item-preview-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    background: #FFF7EF;
+    border: 1px solid #E8CDB7;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    color: #4A3023 !important;
+}
+
+.item-preview-bar b {
+    color: #B65F1F !important;
+}
+
+.multi-order-total {
+    background: linear-gradient(135deg, #FFF0DE 0%, #FFE4C8 100%);
+    border: 2px solid #D98A45;
+    border-radius: 18px;
+    padding: 18px;
+    margin: 18px 0;
+    text-align: center;
+    box-shadow: 0 6px 18px rgba(121, 66, 27, 0.10);
+}
+
+.multi-order-label {
+    color: #6B341B !important;
+    font-weight: 800;
+    font-size: 0.95rem;
+}
+
+.multi-order-money {
+    color: #B94F16 !important;
+    font-size: 2rem;
+    font-weight: 900;
+    margin: 4px 0;
+}
+
+.multi-order-sub {
+    color: #76513B !important;
+    font-size: 0.9rem;
+}
+
+.cart-count {
+    background: #F7E7D8;
+    color: #5A321F !important;
+    border: 1px solid #E3C3A9;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+}
+
+.detail-pill {
+    display: inline-block;
+    background: #FFF3E6;
+    color: #6B341B !important;
+    border: 1px solid #E8CDB7;
+    border-radius: 999px;
+    padding: 4px 9px;
+    margin: 2px 4px 2px 0;
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.item-price {
+    color: #B94F16 !important;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.mini-summary {
+    background: linear-gradient(135deg, #6B341B, #A0522D);
+    color: white !important;
+    border-radius: 16px;
+    padding: 13px 17px;
+    text-align: center;
+    box-shadow: 0 5px 16px rgba(91, 45, 24, 0.18);
+}
+
+.mini-summary * {
+    color: white !important;
+}
+
+.mini-summary-title {
+    font-size: 0.85rem;
+    opacity: 0.92;
+}
+
+.mini-summary-number {
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.mini-summary-total {
+    font-size: 1.05rem;
+    font-weight: 700;
 }
 
 /* =========================================================
@@ -1217,415 +1338,311 @@ if menu == "🔐 Đăng nhập Admin":
 elif menu == "🛒 Đặt hàng":
 
     st.header("🛒 TẠO ĐƠN HÀNG")
+    st.caption("Chọn nhiều món trong cùng một lần order • Tùy chỉnh từng món • Tính bill tự động")
 
     # --------------------------------------------------------
-    # THÔNG TIN KHÁCH
+    # THÔNG TIN KHÁCH HÀNG
     # --------------------------------------------------------
 
-    customer_name = st.text_input(
-        "👤 Tên khách hàng",
-        value=st.session_state.customer_name,
-        placeholder="Nhập tên khách hàng..."
-    )
+    customer_col1, customer_col2 = st.columns([2, 1])
 
-    st.session_state.customer_name = customer_name
+    with customer_col1:
+        customer_name = st.text_input(
+            "👤 Tên khách hàng",
+            value=st.session_state.customer_name,
+            placeholder="Nhập tên khách hàng..."
+        )
+        st.session_state.customer_name = customer_name
+
+    with customer_col2:
+        st.markdown(
+            f"""
+            <div class="mini-summary">
+                <div class="mini-summary-title">🧾 Đơn hiện tại</div>
+                <div class="mini-summary-number">{len(st.session_state.cart)} món</div>
+                <div class="mini-summary-total">{money(calculate_cart_total())}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     st.divider()
 
     # --------------------------------------------------------
-    # THÊM MÓN
+    # CHỌN NHIỀU MÓN TRONG MỘT LẦN ORDER
     # --------------------------------------------------------
 
-    st.subheader("🥤 THÊM MÓN VÀO ĐƠN")
+    st.subheader("🥤 CHỌN NHIỀU MÓN")
+    st.markdown(
+        "<div class='section-hint'>💡 Bạn có thể chọn <b>nhiều món cùng lúc</b>. "
+        "Mỗi món bên dưới có thể tùy chỉnh size, số lượng, đường, đá và topping riêng.</div>",
+        unsafe_allow_html=True
+    )
 
     visible_categories = [
         category["name"]
         for category in st.session_state.data["categories"]
-        if category["visible"]
+        if category.get("visible", True)
     ]
 
     if not visible_categories:
-
-        st.warning(
-            "Hiện chưa có danh mục món."
-        )
-
+        st.warning("Hiện chưa có danh mục món.")
     else:
-
         selected_category = st.selectbox(
-            "📂 Danh mục",
-            visible_categories
+            "📂 Chọn danh mục",
+            visible_categories,
+            key="order_category"
         )
 
         available_products = [
             product
             for product in st.session_state.data["products"]
-            if product["category"] == selected_category
-            and product["status"] == "Còn hàng"
+            if product.get("category") == selected_category
+            and product.get("status") == "Còn hàng"
+            and product.get("visible", True)
         ]
 
         if not available_products:
-
-            st.warning(
-                "Danh mục này hiện chưa có món còn hàng."
-            )
-
+            st.warning("Danh mục này hiện chưa có món còn hàng.")
         else:
+            product_names = [product["name"] for product in available_products]
 
-            product_names = [
-                product["name"]
-                for product in available_products
-            ]
-
-            selected_product_name = st.selectbox(
-                "🧋 Chọn món",
-                product_names
+            selected_product_names = st.multiselect(
+                "🧋 Chọn món — có thể chọn nhiều món",
+                product_names,
+                placeholder="Ví dụ: Trà sữa truyền thống, Matcha, Trà vải...",
+                key="order_multi_products"
             )
 
-            product = next(
-                product
-                for product in available_products
-                if product["name"] == selected_product_name
-            )
+            if selected_product_names:
+                st.success(
+                    f"✅ Đã chọn {len(selected_product_names)} món. "
+                    "Hãy tùy chỉnh từng món bên dưới rồi bấm 'THÊM TẤT CẢ VÀO ĐƠN'."
+                )
 
-            image_col, info_col = st.columns(
-                [1, 2]
-            )
+                configured_items = []
 
-            with image_col:
+                for product_index, product_name in enumerate(selected_product_names):
+                    product = next(
+                        item for item in available_products
+                        if item["name"] == product_name
+                    )
 
-                if product["image"]:
-
-                    try:
-
-                        st.image(
-                            product["image"],
-                            use_container_width=True
+                    with st.container(border=True):
+                        st.markdown(
+                            f"<div class='product-config-title'>🧋 {product['name']}</div>",
+                            unsafe_allow_html=True
                         )
 
-                    except Exception:
+                        if product.get("description"):
+                            st.caption(product["description"])
 
-                        pass
+                        config_col1, config_col2, config_col3 = st.columns(3)
 
-            with info_col:
+                        with config_col1:
+                            size = st.radio(
+                                "📏 Size",
+                                ["S", "M", "L"],
+                                horizontal=True,
+                                key=f"multi_size_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                            quantity = st.number_input(
+                                "🔢 Số lượng",
+                                min_value=1,
+                                max_value=100,
+                                value=1,
+                                step=1,
+                                key=f"multi_qty_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                        with config_col2:
+                            sugar = st.selectbox(
+                                "🍬 Mức độ đường",
+                                [100, 70, 50, 30, 10, 0],
+                                format_func=lambda value: f"{value}%",
+                                key=f"multi_sugar_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                            ice = st.selectbox(
+                                "🧊 Lượng đá",
+                                [100, 70, 50, 30, 10, 0],
+                                format_func=lambda value: f"{value}%",
+                                key=f"multi_ice_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                        with config_col3:
+                            available_toppings = [
+                                topping
+                                for topping in st.session_state.data["toppings"]
+                                if topping.get("visible", True)
+                                and topping.get("status") == "Còn hàng"
+                            ]
+
+                            topping_options = {
+                                f"{topping['name']} (+{money(topping['price'])})": topping
+                                for topping in available_toppings
+                            }
+
+                            selected_topping_labels = st.multiselect(
+                                "🧋 Topping",
+                                list(topping_options.keys()),
+                                key=f"multi_toppings_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                            selected_toppings = [
+                                topping_options[label]
+                                for label in selected_topping_labels
+                            ]
+
+                        notes_col1, notes_col2 = st.columns([1, 1])
+
+                        with notes_col1:
+                            notes_options = [
+                                "Nhiều sữa",
+                                "Không lấy ống hút",
+                                "Uống tại chỗ",
+                                "Mang về"
+                            ]
+
+                            selected_notes = st.multiselect(
+                                "📝 Ghi chú nhanh",
+                                notes_options,
+                                key=f"multi_notes_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                        with notes_col2:
+                            custom_note = st.text_input(
+                                "📝 Ghi chú riêng",
+                                placeholder="Ví dụ: Ít ngọt hơn, để riêng topping...",
+                                key=f"multi_custom_note_{product_index}_{product.get('id', product_index)}"
+                            )
+
+                        notes = ", ".join(selected_notes)
+                        if custom_note.strip():
+                            if notes:
+                                notes += ", "
+                            notes += custom_note.strip()
+
+                        size_price = product.get("sizes", {}).get(size, 0)
+
+                        preview_item = {
+                            "name": product["name"],
+                            "price": product["price"],
+                            "size_price": size_price,
+                            "quantity": quantity,
+                            "size": size,
+                            "sugar": sugar,
+                            "ice": ice,
+                            "toppings": selected_toppings,
+                            "notes": notes
+                        }
+
+                        item_total = calculate_item_total(preview_item)
+                        configured_items.append(preview_item)
+
+                        st.markdown(
+                            f"""
+                            <div class="item-preview-bar">
+                                <span>💵 Đơn giá Size {size}: <b>{money(product['price'] + size_price)}</b></span>
+                                <span>🔢 SL: <b>{quantity}</b></span>
+                                <span>💰 Thành tiền: <b>{money(item_total)}</b></span>
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                selected_total = sum(
+                    calculate_item_total(item)
+                    for item in configured_items
+                )
 
                 st.markdown(
-                    f"### 🧋 {product['name']}"
+                    f"""
+                    <div class="multi-order-total">
+                        <div class="multi-order-label">🧾 TỔNG CÁC MÓN ĐANG CHỌN</div>
+                        <div class="multi-order-money">{money(selected_total)}</div>
+                        <div class="multi-order-sub">{len(configured_items)} loại món • sẽ được thêm vào cùng một đơn</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
                 )
 
-                st.write(
-                    product["description"]
-                )
+                add_col1, add_col2 = st.columns([3, 1])
 
-                st.markdown(
-                    f"### {money(product['price'])}"
-                )
+                with add_col1:
+                    if st.button(
+                        "➕ THÊM TẤT CẢ MÓN VÀO ĐƠN",
+                        type="primary",
+                        use_container_width=True,
+                        key="add_all_multi_items"
+                    ):
+                        st.session_state.cart.extend(configured_items)
+                        st.success(
+                            f"🎉 Đã thêm {len(configured_items)} loại món vào đơn hàng!"
+                        )
+                        st.rerun()
 
-            # ------------------------------------------------
-            # SIZE
-            # ------------------------------------------------
-
-            size = st.radio(
-                "📏 Size",
-                ["S", "M", "L"],
-                horizontal=True
-            )
-
-            size_price = product[
-                "sizes"
-            ].get(
-                size,
-                0
-            )
-
-            current_price = (
-                product["price"]
-                + size_price
-            )
-
-            st.info(
-                f"Giá Size {size}: "
-                f"**{money(current_price)}**"
-            )
-
-            # ------------------------------------------------
-            # SỐ LƯỢNG
-            # ------------------------------------------------
-
-            quantity = st.number_input(
-                "🔢 Số lượng",
-                min_value=1,
-                max_value=100,
-                value=1,
-                step=1
-            )
-
-            # ------------------------------------------------
-            # ĐƯỜNG
-            # ------------------------------------------------
-
-            sugar = st.selectbox(
-                "🍬 Mức độ đường",
-                [100, 70, 50, 30, 10, 0],
-                format_func=lambda value:
-                    f"{value}%"
-            )
-
-            # ------------------------------------------------
-            # ĐÁ
-            # ------------------------------------------------
-
-            ice = st.selectbox(
-                "🧊 Lượng đá",
-                [100, 70, 50, 30, 10, 0],
-                format_func=lambda value:
-                    f"{value}%"
-            )
-
-            # ------------------------------------------------
-            # TOPPING
-            # ------------------------------------------------
-
-            available_toppings = [
-                topping
-                for topping
-                in st.session_state.data["toppings"]
-                if topping["visible"]
-                and topping["status"] == "Còn hàng"
-            ]
-
-            topping_options = {
-                f"{topping['name']} "
-                f"(+{money(topping['price'])})":
-                topping
-                for topping in available_toppings
-            }
-
-            selected_topping_labels = st.multiselect(
-                "🧋 Topping – có thể chọn nhiều",
-                list(topping_options.keys())
-            )
-
-            selected_toppings = [
-                topping_options[label]
-                for label in selected_topping_labels
-            ]
-
-            # ------------------------------------------------
-            # GHI CHÚ
-            # ------------------------------------------------
-
-            st.markdown(
-                "### 📝 GHI CHÚ RIÊNG"
-            )
-
-            notes_options = [
-                "Nhiều sữa",
-                "Không lấy ống hút",
-                "Uống tại chỗ",
-                "Mang về"
-            ]
-
-            selected_notes = st.multiselect(
-                "Chọn ghi chú",
-                notes_options
-            )
-
-            custom_note = st.text_input(
-                "Ghi chú theo yêu cầu",
-                placeholder=(
-                    "Ví dụ: Ít ngọt hơn, "
-                    "để riêng topping..."
-                )
-            )
-
-            notes = ", ".join(
-                selected_notes
-            )
-
-            if custom_note.strip():
-
-                if notes:
-
-                    notes += ", "
-
-                notes += custom_note.strip()
-
-            # ------------------------------------------------
-            # TÍNH TIỀN MÓN
-            # ------------------------------------------------
-
-            preview_item = {
-
-                "name": product["name"],
-
-                "price": product["price"],
-
-                "size_price": size_price,
-
-                "quantity": quantity,
-
-                "size": size,
-
-                "sugar": sugar,
-
-                "ice": ice,
-
-                "toppings": selected_toppings,
-
-                "notes": notes
-
-            }
-
-            preview_total = calculate_item_total(
-                preview_item
-            )
-
-            st.info(
-                f"💰 Thành tiền món này: "
-                f"**{money(preview_total)}**"
-            )
-
-            # ------------------------------------------------
-            # THÊM VÀO GIỎ
-            # ------------------------------------------------
-
-            if st.button(
-                "➕ THÊM MÓN VÀO ĐƠN",
-                type="primary",
-                use_container_width=True
-            ):
-
-                item = {
-
-                    "name": product["name"],
-
-                    "price": product["price"],
-
-                    "size": size,
-
-                    "size_price": size_price,
-
-                    "quantity": quantity,
-
-                    "sugar": sugar,
-
-                    "ice": ice,
-
-                    "toppings": selected_toppings,
-
-                    "notes": notes
-
-                }
-
-                st.session_state.cart.append(
-                    item
-                )
-
-                st.success(
-                    f"Đã thêm "
-                    f"{quantity} x "
-                    f"{product['name']}!"
-                )
-
-                st.rerun()
+                with add_col2:
+                    if st.button(
+                        "🔄 BỎ CHỌN",
+                        use_container_width=True,
+                        key="clear_multi_selection"
+                    ):
+                        st.session_state.order_multi_products = []
+                        st.rerun()
+            else:
+                st.info("👆 Hãy chọn một hoặc nhiều món ở ô phía trên để bắt đầu order.")
 
     # ========================================================
-    # CHI TIẾT ĐƠN
+    # CHI TIẾT ĐƠN HÀNG
     # ========================================================
 
     st.divider()
-
     st.header("🧾 CHI TIẾT ĐƠN HÀNG")
 
     if not st.session_state.cart:
-
-        st.info(
-            "Chưa có món trong đơn."
+        st.info("Chưa có món trong đơn. Hãy chọn nhiều món ở phía trên và bấm 'THÊM TẤT CẢ MÓN VÀO ĐƠN'.")
+    else:
+        st.markdown(
+            f"<div class='cart-count'>🛒 Đơn hàng hiện có <b>{len(st.session_state.cart)} loại món</b></div>",
+            unsafe_allow_html=True
         )
 
-    else:
+        for index, item in enumerate(st.session_state.cart):
+            item_total = calculate_item_total(item)
 
-        for index, item in enumerate(
-            st.session_state.cart
-        ):
-
-            item_total = calculate_item_total(
-                item
-            )
-
-            if item["toppings"]:
-
-                toppings_text = ", ".join(
-                    topping["name"]
-                    for topping in item["toppings"]
-                )
-
-            else:
-
-                toppings_text = "Không"
+            toppings_text = ", ".join(
+                topping["name"] for topping in item["toppings"]
+            ) if item["toppings"] else "Không"
 
             st.markdown(
                 f"""
-<div class="order-card">
-
-<div class="order-title">
-
-🧋 {index + 1}. {html.escape(item['name'])}
-
-</div>
-
-<div class="order-detail">
-
-📏 <b>Size:</b>
-{item['size']}
-<br>
-
-🔢 <b>Số lượng:</b>
-{item['quantity']}
-<br>
-
-🍬 <b>Đường:</b>
-{item['sugar']}%
-<br>
-
-🧊 <b>Đá:</b>
-{item['ice']}%
-<br>
-
-🧋 <b>Topping:</b>
-{html.escape(toppings_text)}
-<br>
-
-📝 <b>Ghi chú:</b>
-{html.escape(item['notes'] or 'Không')}
-<br>
-
-💰 <b>Thành tiền:</b>
-{money(item_total)}
-
-</div>
-
-</div>
-""",
+                <div class="order-card">
+                    <div class="order-title">🧋 {index + 1}. {html.escape(item['name'])}</div>
+                    <div class="order-detail">
+                        <span class="detail-pill">📏 Size {item['size']}</span>
+                        <span class="detail-pill">🔢 SL {item['quantity']}</span>
+                        <span class="detail-pill">🍬 Đường {item['sugar']}%</span>
+                        <span class="detail-pill">🧊 Đá {item['ice']}%</span>
+                        <br><br>
+                        🧋 <b>Topping:</b> {html.escape(toppings_text)}<br>
+                        📝 <b>Ghi chú:</b> {html.escape(item['notes'] or 'Không')}<br>
+                        💰 <b>Thành tiền:</b> <span class="item-price">{money(item_total)}</span>
+                    </div>
+                </div>
+                """,
                 unsafe_allow_html=True
             )
 
-            delete_col1, delete_col2 = st.columns(
-                [5, 1]
-            )
-
+            delete_col1, delete_col2 = st.columns([5, 1])
             with delete_col2:
-
                 if st.button(
                     "🗑️ Xóa",
-                    key=f"delete_cart_{index}"
+                    key=f"delete_cart_{index}",
+                    use_container_width=True
                 ):
-
-                    st.session_state.cart.pop(
-                        index
-                    )
-
+                    st.session_state.cart.pop(index)
                     st.rerun()
 
         # ----------------------------------------------------
@@ -1636,45 +1653,13 @@ elif menu == "🛒 Đặt hàng":
 
         st.markdown(
             f"""
-<div class="total-box">
-
-<div>
-
-👤 Khách hàng:
-<b>
-{html.escape(
-    st.session_state.customer_name
-    or "Khách lẻ"
-)}
-</b>
-
-</div>
-
-<br>
-
-<div>
-
-🧾 Số món:
-<b>{len(st.session_state.cart)}</b>
-
-</div>
-
-<br>
-
-<div class="total-money">
-
-💰 {money(total)}
-
-</div>
-
-<div>
-
-TỔNG SỐ TIỀN CẦN THANH TOÁN
-
-</div>
-
-</div>
-""",
+            <div class="total-box">
+                <div class="total-customer">👤 Khách hàng: <b>{html.escape(st.session_state.customer_name or 'Khách lẻ')}</b></div>
+                <div class="total-items">🧾 Tổng số loại món: <b>{len(st.session_state.cart)}</b></div>
+                <div class="total-money">💰 {money(total)}</div>
+                <div class="total-caption">TỔNG SỐ TIỀN CẦN THANH TOÁN</div>
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -1689,49 +1674,34 @@ TỔNG SỐ TIỀN CẦN THANH TOÁN
         col1, col2, col3 = st.columns(3)
 
         with col1:
-
             txt_data = create_txt_invoice()
-
             st.download_button(
                 "📄 Tải hóa đơn TXT",
                 data=txt_data,
-                file_name=(
-                    f"hoa_don_"
-                    f"{st.session_state.order_id}.txt"
-                ),
+                file_name=f"hoa_don_{st.session_state.order_id}.txt",
                 mime="text/plain",
                 use_container_width=True
             )
 
         with col2:
-
             html_data = create_html_invoice()
-
             st.download_button(
                 "🌐 Tải hóa đơn HTML",
                 data=html_data,
-                file_name=(
-                    f"hoa_don_"
-                    f"{st.session_state.order_id}.html"
-                ),
+                file_name=f"hoa_don_{st.session_state.order_id}.html",
                 mime="text/html",
                 use_container_width=True
             )
 
         with col3:
-
             if st.button(
                 "🗑️ TẠO ĐƠN MỚI",
-                use_container_width=True
+                use_container_width=True,
+                key="new_order_bottom"
             ):
-
                 reset_order()
-
                 st.rerun()
 
-
-# ============================================================
-# ============================================================
 # 3. QUẢN LÝ DANH MỤC - CHỈ ADMIN
 # ============================================================
 # ============================================================
