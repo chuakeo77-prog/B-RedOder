@@ -1164,21 +1164,19 @@ def create_txt_invoice():
         1
     ):
 
-        lines.append(
-            f"{index}. {item['name']} - Size {item['size']}"
-        )
+        if item.get("item_type") == "standalone_topping":
+            lines.append(f"{index}. {item['name']} - Topping mua riêng")
+        else:
+            lines.append(f"{index}. {item['name']} - Size {item.get('size', 'S')}")
 
-        lines.append(
-            f"   Số lượng: {item['quantity']}"
-        )
+        lines.append(f"   Số lượng: {item.get('quantity', 1)}")
 
-        lines.append(
-            f"   Đường: {item['sugar']}%"
-        )
-
-        lines.append(
-            f"   Đá: {item['ice']}%"
-        )
+        if item.get("item_type") == "standalone_topping":
+            lines.append("   Đường: Không áp dụng")
+            lines.append("   Đá: Không áp dụng")
+        else:
+            lines.append(f"   Đường: {item.get('sugar', 100)}%")
+            lines.append(f"   Đá: {item.get('ice', 100)}%")
 
         if item["toppings"]:
 
@@ -1253,19 +1251,23 @@ def create_html_invoice():
 
         toppings = ", ".join(
             topping["name"]
-            for topping in item["toppings"]
-        ) if item["toppings"] else "Không"
+            for topping in item.get("toppings", [])
+        ) if item.get("toppings") else "Không"
+        standalone = item.get("item_type") == "standalone_topping"
+        size_text = "Topping mua riêng" if standalone else item.get("size", "S")
+        sugar_text = "—" if standalone else f"{item.get('sugar', 100)}%"
+        ice_text = "—" if standalone else f"{item.get('ice', 100)}%"
 
         rows += f"""
         <tr>
             <td>{index}</td>
-            <td>{html.escape(item['name'])}</td>
-            <td>{item['size']}</td>
-            <td>{item['quantity']}</td>
-            <td>{item['sugar']}%</td>
-            <td>{item['ice']}%</td>
+            <td>{html.escape(item.get('name', 'Món'))}</td>
+            <td>{html.escape(str(size_text))}</td>
+            <td>{item.get('quantity', 1)}</td>
+            <td>{sugar_text}</td>
+            <td>{ice_text}</td>
             <td>{html.escape(toppings)}</td>
-            <td>{html.escape(item['notes'] or 'Không')}</td>
+            <td>{html.escape(item.get('notes', '') or 'Không')}</td>
             <td>{money(calculate_item_total(item))}</td>
         </tr>
         """
@@ -1875,6 +1877,79 @@ elif menu == "🛒 Đặt hàng":
                 st.info("Chưa chọn món. Hãy chọn nhiều món ở ô phía trên để cấu hình.")
 
     # ========================================================
+    # MUA TOPPING RIÊNG - KHÔNG BẮT BUỘC MUA NƯỚC
+    # ========================================================
+    st.divider()
+    with st.expander("🧋 MUA TOPPING RIÊNG — KHÔNG CẦN MUA NƯỚC", expanded=True):
+        st.markdown(
+            "<div class='cute-subtitle'>Chọn topping, nhập số lượng rồi thêm thẳng vào đơn hàng. "
+            "Bạn vẫn có thể chọn topping kèm trà sữa như bình thường.</div>",
+            unsafe_allow_html=True
+        )
+        standalone_toppings = [
+            topping for topping in st.session_state.data.get("toppings", [])
+            if topping.get("status", "Còn hàng") == "Còn hàng"
+            and topping.get("visible", True)
+        ]
+        if not standalone_toppings:
+            st.info("Hiện chưa có topping nào đang bán.")
+        else:
+            topping_options = {
+                f"{topping.get('name', 'Topping')} • {money(topping.get('price', 0))}": topping
+                for topping in standalone_toppings
+            }
+            standalone_selected_labels = st.multiselect(
+                "🍡 Chọn topping muốn mua riêng (có thể chọn nhiều)",
+                options=list(topping_options.keys()),
+                key="standalone_topping_selection",
+                help="Topping sẽ được tính tiền riêng, không cần thêm đồ uống."
+            )
+            standalone_config = []
+            if standalone_selected_labels:
+                cols = st.columns(min(3, len(standalone_selected_labels)))
+                for topping_index, topping_label in enumerate(standalone_selected_labels):
+                    topping = topping_options[topping_label]
+                    with cols[topping_index % len(cols)]:
+                        qty = st.number_input(
+                            f"🔢 Số lượng — {topping.get('name', 'Topping')}",
+                            min_value=1,
+                            max_value=100,
+                            value=1,
+                            step=1,
+                            key=f"standalone_topping_qty_{topping.get('id', topping_index)}"
+                        )
+                    standalone_config.append({
+                        "id": topping.get("id"),
+                        "name": topping.get("name", "Topping"),
+                        "price": float(topping.get("price", 0) or 0),
+                        "size": "—",
+                        "size_price": 0,
+                        "quantity": int(qty),
+                        "sugar": "—",
+                        "ice": "—",
+                        "toppings": [],
+                        "notes": "Mua topping riêng",
+                        "item_type": "standalone_topping",
+                    })
+                standalone_total = sum(
+                    calculate_item_total(item) for item in standalone_config
+                )
+                st.markdown(
+                    f"<div class='total-box'><div>🍡 Tổng topping mua riêng</div>"
+                    f"<div class='total-money'>{money(standalone_total)}</div></div>",
+                    unsafe_allow_html=True
+                )
+                if st.button(
+                    "🍡 THÊM TOPPING RIÊNG VÀO ĐƠN",
+                    type="primary",
+                    use_container_width=True,
+                    key="add_standalone_toppings"
+                ):
+                    st.session_state.cart.extend(standalone_config)
+                    st.success("Đã thêm topping mua riêng vào đơn hàng!")
+                    st.rerun()
+
+    # ========================================================
     # CHI TIẾT ĐƠN HÀNG
     # ========================================================
     st.divider()
@@ -1893,17 +1968,22 @@ elif menu == "🛒 Đặt hàng":
             toppings_text = ", ".join(
                 topping.get("name", "") for topping in item.get("toppings", [])
             ) if item.get("toppings") else "Không"
+            is_standalone_topping = item.get("item_type") == "standalone_topping"
+            item_title_icon = "🍡" if is_standalone_topping else "🧋"
+            size_display = "Mua riêng" if is_standalone_topping else item.get("size", "S")
+            sugar_display = "Không áp dụng" if is_standalone_topping else f"{item.get('sugar', 100)}%"
+            ice_display = "Không áp dụng" if is_standalone_topping else f"{item.get('ice', 100)}%"
 
             st.markdown(
                 f"""
                 <div class="order-card">
-                    <div class="order-title">🧋 {index + 1}. {html.escape(item.get('name', 'Món'))}</div>
+                    <div class="order-title">{item_title_icon} {index + 1}. {html.escape(item.get('name', 'Món'))}</div>
                     <div class="order-detail">
-                        📏 <b>Size:</b> {item.get('size', 'S')}<br>
+                        📏 <b>Phân loại:</b> {html.escape(str(size_display))}<br>
                         🔢 <b>Số lượng:</b> {item.get('quantity', 1)}<br>
-                        🍬 <b>Đường:</b> {item.get('sugar', 100)}%<br>
-                        🧊 <b>Đá:</b> {item.get('ice', 100)}%<br>
-                        🧋 <b>Topping:</b> {html.escape(toppings_text)}<br>
+                        🍬 <b>Đường:</b> {html.escape(str(sugar_display))}<br>
+                        🧊 <b>Đá:</b> {html.escape(str(ice_display))}<br>
+                        🧋 <b>Topping kèm theo:</b> {html.escape(toppings_text)}<br>
                         📝 <b>Ghi chú:</b> {html.escape(item.get('notes', '') or 'Không')}<br>
                         💰 <b>Thành tiền:</b> {money(item_total)}
                     </div>
@@ -1920,7 +2000,9 @@ elif menu == "🛒 Đặt hàng":
                     if st.session_state.editing_cart_index == index
                     else "✏️ SỬA MÓN NÀY"
                 )
-                if st.button(
+                if is_standalone_topping:
+                    st.caption("🍡 Muốn đổi số lượng, hãy xóa dòng này rồi thêm lại topping riêng.")
+                elif st.button(
                     edit_label,
                     key=f"edit_cart_{index}",
                     use_container_width=True,
