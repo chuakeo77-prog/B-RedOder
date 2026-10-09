@@ -4,6 +4,7 @@ import json
 import os
 import html
 import hashlib
+import requests
 
 # ============================================================
 # CẤU HÌNH TRANG
@@ -70,6 +71,97 @@ def get_admin_password():
 
 ADMIN_USERNAME = get_admin_username()
 ADMIN_PASSWORD = get_admin_password()
+
+
+# ============================================================
+# KẾT NỐI CHATBOT AI QUA OPENROUTER
+# ============================================================
+# Thiết lập trong Streamlit Cloud > App > Settings > Secrets:
+# OPENROUTER_API_KEY = "..."
+# OPENROUTER_MODEL = "openrouter/auto"
+# Không ghi API Key trực tiếp trong mã nguồn hoặc GitHub.
+
+
+def get_openrouter_settings():
+    """Đọc API Key và model từ Streamlit Secrets."""
+    try:
+        api_key = str(st.secrets.get("OPENROUTER_API_KEY", "")).strip()
+    except Exception:
+        api_key = ""
+
+    try:
+        model = str(st.secrets.get("OPENROUTER_MODEL", "openrouter/auto")).strip()
+    except Exception:
+        model = "openrouter/auto"
+
+    return api_key, model or "openrouter/auto"
+
+
+def call_openrouter(messages):
+    """Gửi lịch sử hội thoại đến OpenRouter và trả về câu trả lời AI."""
+    api_key, model = get_openrouter_settings()
+    if not api_key:
+        raise RuntimeError(
+            "Chưa cấu hình OPENROUTER_API_KEY. Hãy mở ứng dụng trên "
+            "Streamlit Community Cloud → Manage app/Settings → Secrets và thêm API Key."
+        )
+
+    try:
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "X-OpenRouter-Title": "B-RedO Oder - Chatbot",
+            },
+            json={
+                "model": model,
+                "messages": messages,
+                "temperature": 0.7,
+                "max_tokens": 700,
+            },
+            timeout=60,
+        )
+    except requests.exceptions.Timeout as exc:
+        raise RuntimeError("AI phản hồi quá lâu. Vui lòng thử lại sau.") from exc
+    except requests.exceptions.RequestException as exc:
+        raise RuntimeError("Không kết nối được OpenRouter. Hãy kiểm tra mạng và thử lại.") from exc
+
+    if response.status_code >= 400:
+        # Không hiển thị header hoặc API Key trong thông báo lỗi.
+        try:
+            detail = response.json().get("error", {}).get("message", "")
+        except Exception:
+            detail = ""
+        detail = str(detail)[:300]
+        if response.status_code in (401, 403):
+            message = "API Key không hợp lệ hoặc chưa được cấp quyền. Hãy kiểm tra Secrets."
+        elif response.status_code == 402:
+            message = "Tài khoản OpenRouter không đủ số dư/hạn mức để gọi model."
+        elif response.status_code == 429:
+            message = "OpenRouter đang giới hạn lượt gọi. Hãy chờ một lúc rồi thử lại."
+        else:
+            message = f"OpenRouter trả về lỗi HTTP {response.status_code}. Hãy kiểm tra model và cấu hình."
+        if detail:
+            message += f" Chi tiết: {detail}"
+        raise RuntimeError(message)
+
+    try:
+        data = response.json()
+        answer = data["choices"][0]["message"]["content"]
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        raise RuntimeError(
+            "OpenRouter không trả về nội dung hợp lệ. Hãy kiểm tra tên model trong Secrets."
+        ) from exc
+
+    if isinstance(answer, list):
+        # Một số model trả về nội dung theo các khối.
+        answer = "\n".join(
+            str(part.get("text", "")) for part in answer if isinstance(part, dict)
+        )
+    if not isinstance(answer, str) or not answer.strip():
+        raise RuntimeError("AI trả về câu trả lời trống. Vui lòng thử lại.")
+    return answer.strip()
 
 
 # ============================================================
@@ -1266,6 +1358,7 @@ if st.session_state.admin_logged_in:
         "🍹 Quản lý món",
         "🥤 Quản lý topping",
         "🧾 Lịch sử hóa đơn",
+        "🤖 Chatbot AI",
         "⚙️ Tài khoản Admin"
     ]
 
@@ -1273,6 +1366,7 @@ else:
 
     menu_options = [
         "🛒 Đặt hàng",
+        "🤖 Chatbot AI",
         "🔐 Đăng nhập Admin"
     ]
 
@@ -3159,3 +3253,95 @@ st.sidebar.caption(
 st.sidebar.caption(
     "Order • Tính bill • Lịch sử hóa đơn • Admin"
 )
+
+# ============================================================
+# CHATBOT AI - TƯ VẤN KHÁCH HÀNG
+# ============================================================
+
+if menu == "🤖 Chatbot AI":
+    st.header("🤖 TRỢ LÝ AI B-REDO ODER")
+    st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
+    st.info(
+        "Trợ lý AI dùng thông tin menu hiện tại để tư vấn. Chatbot không tự tạo đơn, "
+        "không thanh toán và không chỉnh sửa hóa đơn. Giá size/topping có thể được tính thêm."
+    )
+
+    if "chatbot_messages" not in st.session_state:
+        st.session_state.chatbot_messages = []
+
+    current_data = st.session_state.get("data", {})
+    product_lines = []
+    for product in current_data.get("products", []):
+        if product.get("status", "Còn hàng") == "Còn hàng":
+            product_lines.append(
+                f"- {product.get('name', 'Món chưa đặt tên')}; "
+                f"danh mục: {product.get('category', 'Chưa phân loại')}; "
+                f"giá cơ bản: {product.get('price', 0):,} VNĐ; "
+                f"mô tả: {product.get('description', 'Không có mô tả')}; "
+                f"giá cộng thêm theo size: {product.get('sizes', {})}"
+            )
+
+    topping_lines = []
+    for topping in current_data.get("toppings", []):
+        if topping.get("status", "Còn hàng") == "Còn hàng" and topping.get("visible", True):
+            topping_lines.append(
+                f"- {topping.get('name', 'Topping')}: {topping.get('price', 0):,} VNĐ"
+            )
+
+    product_text = "\n".join(product_lines) or "Chưa có món đang bán."
+    topping_text = "\n".join(topping_lines) or "Chưa có topping đang bán."
+    system_prompt = f"""Bạn là trợ lý tư vấn khách hàng thân thiện của quán B-RedO Oder.
+Trả lời bằng tiếng Việt, lịch sự, ngắn gọn, dễ hiểu và có thể dùng emoji phù hợp.
+Nhiệm vụ: tư vấn đồ uống trong menu, gợi ý topping, đường và đá theo sở thích; giải thích giá dựa trên dữ liệu được cung cấp.
+Quy tắc:
+- Chỉ nêu món, giá, topping và thông tin được cung cấp bên dưới; không tự bịa khuyến mãi/chính sách.
+- Giá sản phẩm là giá cơ bản; giá size và topping có thể tính thêm theo dữ liệu.
+- Nếu thiếu thông tin, nói rõ rằng bạn chưa có dữ liệu và gợi ý hỏi nhân viên.
+- Không nói rằng bạn đã tạo đơn, thanh toán, sửa hoặc xóa hóa đơn.
+- Không yêu cầu mật khẩu, API Key, mã OTP hoặc thông tin thẻ ngân hàng.
+
+MENU ĐANG BÁN:
+{product_text}
+
+TOPPING ĐANG BÁN:
+{topping_text}
+"""
+
+    action_col1, action_col2 = st.columns([1, 3])
+    with action_col1:
+        if st.button("🗑️ Xóa cuộc trò chuyện", key="clear_chatbot_history"):
+            st.session_state.chatbot_messages = []
+            st.rerun()
+    with action_col2:
+        _, configured_model = get_openrouter_settings()
+        st.caption(f"Model đang cấu hình: {configured_model}")
+
+    for chat_message in st.session_state.chatbot_messages:
+        with st.chat_message(chat_message["role"]):
+            st.markdown(chat_message["content"])
+
+    user_prompt = st.chat_input("Ví dụ: Quán có món nào ít ngọt, thanh mát không?")
+    if user_prompt and user_prompt.strip():
+        user_prompt = user_prompt.strip()
+        st.session_state.chatbot_messages.append({"role": "user", "content": user_prompt})
+        with st.chat_message("user"):
+            st.markdown(user_prompt)
+
+        # Giới hạn lịch sử gửi đi để tránh request quá lớn.
+        recent_messages = st.session_state.chatbot_messages[-12:]
+        api_messages = [{"role": "system", "content": system_prompt}] + recent_messages
+        with st.chat_message("assistant"):
+            with st.spinner("🧋 Trợ lý AI đang suy nghĩ..."):
+                try:
+                    ai_answer = call_openrouter(api_messages)
+                    st.markdown(ai_answer)
+                    st.session_state.chatbot_messages.append(
+                        {"role": "assistant", "content": ai_answer}
+                    )
+                except RuntimeError as error:
+                    st.error(str(error))
+                except Exception:
+                    st.error(
+                        "Có lỗi khi xử lý câu hỏi. Hãy kiểm tra Secrets, model và nhật ký ứng dụng."
+                    )
+
