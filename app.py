@@ -11,7 +11,7 @@ import requests
 # ============================================================
 
 st.set_page_config(
-    page_title="Order & Bill ",
+    page_title="Order & Bill Trà Sữa",
     page_icon="🧋",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -547,7 +547,7 @@ DEFAULT_DATA = {
 
         {
             "id": 3,
-            "name": "NƯỚC NGỌT",
+            "name": "Nước ngọt",
             "visible": True
         }
 
@@ -644,49 +644,46 @@ DEFAULT_DATA = {
                 "L": 10000
             }
         },
-        
         {
             "id": 7,
-            "category": "Nước Ngọt",
+            "category": "Nước ngọt",
             "name": "Sting",
             "image": "",
             "price": 15000,
-            "description": "Sting mát cơ thể",
+            "description": "Nước tăng lực Sting",
             "status": "Còn hàng",
-            "sizes": {
-                "S": 0,
-                "M": 5000,
-                "L": 10000
-            }
+            "sizes": {"S": 0, "M": 0, "L": 0}
         },
         {
             "id": 8,
-            "category": "Nước Ngọt",
-            "name": "CoCola",
-            "image": "",
-            "price": 15000,
-            "description": "CoCola mát cơ thể",
-            "status": "Còn hàng",
-            "sizes": {
-                "S": 0,
-                "M": 5000,
-                "L": 10000
-            }
-        },
-        {
-            "id": 10,
-            "category": "Nước Ngọt",
+            "category": "Nước ngọt",
             "name": "Pepsi",
             "image": "",
             "price": 15000,
-            "description": "Pepsi mát cơ thể",
+            "description": "Nước giải khát Pepsi",
             "status": "Còn hàng",
-            "sizes": {
-                "S": 0,
-                "M": 5000,
-                "L": 10000
-            }
+            "sizes": {"S": 0, "M": 0, "L": 0}
         },
+        {
+            "id": 9,
+            "category": "Nước ngọt",
+            "name": "Coca-Cola",
+            "image": "",
+            "price": 15000,
+            "description": "Nước giải khát Coca-Cola",
+            "status": "Còn hàng",
+            "sizes": {"S": 0, "M": 0, "L": 0}
+        },
+        {
+            "id": 10,
+            "category": "Nước ngọt",
+            "name": "Tiger lùn",
+            "image": "",
+            "price": 20000,
+            "description": "Bia Tiger lon nhỏ",
+            "status": "Còn hàng",
+            "sizes": {"S": 0, "M": 0, "L": 0}
+        }
 
     ],
 
@@ -757,13 +754,57 @@ def load_data():
         return DEFAULT_DATA
 
     try:
-
         with open(DATA_FILE, "r", encoding="utf-8") as file:
+            data = json.load(file)
 
-            return json.load(file)
+        # Cập nhật menu cũ tự động, không làm mất sản phẩm và dữ liệu Admin hiện có.
+        data.setdefault("categories", [])
+        data.setdefault("products", [])
+        data.setdefault("toppings", [])
+
+        for category in data["categories"]:
+            if category.get("name", "").strip().lower() == "topping":
+                category["name"] = "Nước ngọt"
+
+        if not any(c.get("name") == "Nước ngọt" for c in data["categories"]):
+            data["categories"].append({
+                "id": max([int(c.get("id", 0)) for c in data["categories"]] + [0]) + 1,
+                "name": "Nước ngọt",
+                "visible": True
+            })
+
+        soda_defaults = [
+            ("Sting", 15000, "Nước tăng lực Sting"),
+            ("Pepsi", 15000, "Nước giải khát Pepsi"),
+            ("Coca-Cola", 15000, "Nước giải khát Coca-Cola"),
+            ("Tiger lùn", 20000, "Bia Tiger lon nhỏ"),
+        ]
+        for soda_name, soda_price, soda_description in soda_defaults:
+            existing_product = next(
+                (p for p in data["products"]
+                 if p.get("name", "").strip().lower() == soda_name.lower()),
+                None
+            )
+            if existing_product is None:
+                data["products"].append({
+                    "id": max([int(p.get("id", 0)) for p in data["products"]] + [0]) + 1,
+                    "category": "Nước ngọt",
+                    "name": soda_name,
+                    "image": "",
+                    "price": soda_price,
+                    "description": soda_description,
+                    "status": "Còn hàng",
+                    "sizes": {"S": 0, "M": 0, "L": 0}
+                })
+            else:
+                existing_product["category"] = "Nước ngọt"
+                existing_product.setdefault("sizes", {"S": 0, "M": 0, "L": 0})
+
+        with open(DATA_FILE, "w", encoding="utf-8") as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
+        return data
 
     except Exception:
-
         return DEFAULT_DATA
 
 
@@ -869,8 +910,8 @@ def calculate_item_total(item):
     size_price = item["size_price"]
 
     topping_price = sum(
-        topping["price"]
-        for topping in item["toppings"]
+        topping.get("price", 0)
+        for topping in item.get("toppings", [])
     )
 
     return (
@@ -1074,7 +1115,7 @@ def admin_logout():
 
     st.session_state.admin_logged_in = False
 
-    st.success("Đã đăng xuất Admin")
+    st.success("Đã đăng xuất Admin.")
 
     st.rerun()
 
@@ -1495,12 +1536,12 @@ elif menu == "🛒 Đặt hàng":
         """,
         unsafe_allow_html=True,
     )
-    with st.expander("🤖 Trợ lý AI 🧋", expanded=False):
+    with st.expander("🤖 Hỏi trợ lý AI trước khi chọn món 🧋", expanded=False):
         st.subheader("🤖 TRỢ LÝ AI B-REDO ODER")
-        st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
+        st.caption("💕 Tư vấn trà sữa, trà trái cây và nước ngọt theo menu hiện có.")
         st.info(
             "Trợ lý AI dùng thông tin menu hiện tại để tư vấn. Chatbot không tự tạo đơn, "
-            "không thanh toán và không chỉnh sửa hóa đơn. Giá size/topping có thể được tính thêm."
+            "không thanh toán và không chỉnh sửa hóa đơn. Giá size có thể được tính thêm."
         )
 
         if "chatbot_messages" not in st.session_state:
@@ -1531,8 +1572,8 @@ elif menu == "🛒 Đặt hàng":
         Trả lời bằng tiếng Việt, lịch sự, ngắn gọn, dễ hiểu và có thể dùng emoji phù hợp.
         Nhiệm vụ: tư vấn đồ uống trong menu, gợi ý topping, đường và đá theo sở thích; giải thích giá dựa trên dữ liệu được cung cấp.
         Quy tắc:
-        - Chỉ nêu món, giá, topping và thông tin được cung cấp bên dưới; không tự bịa khuyến mãi/chính sách.
-        - Giá sản phẩm là giá cơ bản; giá size và topping có thể tính thêm theo dữ liệu.
+        - Chỉ nêu món, giá và thông tin được cung cấp bên dưới; không tự bịa khuyến mãi/chính sách.
+        - Giá sản phẩm là giá cơ bản; giá size có thể tính thêm theo dữ liệu.
         - Nếu thiếu thông tin, nói rõ rằng bạn chưa có dữ liệu và gợi ý hỏi nhân viên.
         - Không nói rằng bạn đã tạo đơn, thanh toán, sửa hoặc xóa hóa đơn.
         - Không yêu cầu mật khẩu, API Key, mã OTP hoặc thông tin thẻ ngân hàng.
@@ -1730,28 +1771,7 @@ elif menu == "🛒 Đặt hàng":
 
                         st.caption(f"Giá Size {size}: {money(current_price)} / ly")
 
-                        available_toppings = [
-                            topping
-                            for topping in st.session_state.data["toppings"]
-                            if topping.get("visible", True)
-                            and topping.get("status") == "Còn hàng"
-                        ]
-
-                        topping_options = {
-                            f"{topping['name']} (+{money(topping['price'])})": topping
-                            for topping in available_toppings
-                        }
-
-                        selected_topping_labels = st.multiselect(
-                            "🍓 Topping — có thể chọn nhiều",
-                            list(topping_options.keys()),
-                            key=f"multi_toppings_{product['id']}"
-                        )
-
-                        selected_toppings = [
-                            topping_options[label]
-                            for label in selected_topping_labels
-                        ]
+                        selected_toppings = []  # Đã bỏ lựa chọn topping theo yêu cầu.
 
                         notes_options = [
                             "Nhiều sữa",
@@ -2011,33 +2031,7 @@ elif menu == "🛒 Đặt hàng":
                         key=f"edit_ice_{index}"
                     )
 
-                    available_toppings = [
-                        topping
-                        for topping in st.session_state.data["toppings"]
-                        if topping.get("visible", True)
-                        and topping.get("status") == "Còn hàng"
-                    ]
-                    topping_labels = [
-                        f"{topping['name']} (+{money(topping['price'])})"
-                        for topping in available_toppings
-                    ]
-                    topping_map = dict(zip(topping_labels, available_toppings))
-
-                    current_topping_names = {
-                        topping.get("name")
-                        for topping in current_item.get("toppings", [])
-                    }
-                    default_toppings = [
-                        label for label, topping in topping_map.items()
-                        if topping.get("name") in current_topping_names
-                    ]
-
-                    edit_topping_labels = st.multiselect(
-                        "🍓 Topping — có thể chọn nhiều",
-                        topping_labels,
-                        default=default_toppings,
-                        key=f"edit_toppings_{index}"
-                    )
+                    edit_topping_labels = []  # Không sử dụng topping nữa.
 
                     edit_notes = st.text_area(
                         "💬 Ghi chú",
@@ -2055,7 +2049,7 @@ elif menu == "🛒 Đặt hàng":
                         "quantity": edit_quantity,
                         "sugar": edit_sugar,
                         "ice": edit_ice,
-                        "toppings": [topping_map[label] for label in edit_topping_labels],
+                        "toppings": [],
                         "notes": edit_notes.strip()
                     }
                     edit_preview_total = calculate_item_total(edit_preview)
@@ -3469,3 +3463,4 @@ st.sidebar.caption(
 )
 
 # ============================================================
+
