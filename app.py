@@ -1358,7 +1358,6 @@ if st.session_state.admin_logged_in:
         "🍹 Quản lý món",
         "🥤 Quản lý topping",
         "🧾 Lịch sử hóa đơn",
-        "🤖 Chatbot AI",
         "⚙️ Tài khoản Admin"
     ]
 
@@ -1366,7 +1365,6 @@ else:
 
     menu_options = [
         "🛒 Đặt hàng",
-        "🤖 Chatbot AI",
         "🔐 Đăng nhập Admin"
     ]
 
@@ -1415,6 +1413,97 @@ if menu == "🔐 Đăng nhập Admin":
 elif menu == "🛒 Đặt hàng":
 
     st.header("💗 TẠO ĐƠN HÀNG")
+
+    # --------------------------------------------------------
+    # CHATBOT AI TƯ VẤN TRƯỚC KHI CHỌN MÓN
+    # --------------------------------------------------------
+    with st.expander("🤖 Hỏi trợ lý AI trước khi chọn món 🧋", expanded=False):
+        st.subheader("🤖 TRỢ LÝ AI B-REDO ODER")
+        st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
+        st.info(
+            "Trợ lý AI dùng thông tin menu hiện tại để tư vấn. Chatbot không tự tạo đơn, "
+            "không thanh toán và không chỉnh sửa hóa đơn. Giá size/topping có thể được tính thêm."
+        )
+
+        if "chatbot_messages" not in st.session_state:
+            st.session_state.chatbot_messages = []
+
+        current_data = st.session_state.get("data", {})
+        product_lines = []
+        for product in current_data.get("products", []):
+            if product.get("status", "Còn hàng") == "Còn hàng":
+                product_lines.append(
+                    f"- {product.get('name', 'Món chưa đặt tên')}; "
+                    f"danh mục: {product.get('category', 'Chưa phân loại')}; "
+                    f"giá cơ bản: {product.get('price', 0):,} VNĐ; "
+                    f"mô tả: {product.get('description', 'Không có mô tả')}; "
+                    f"giá cộng thêm theo size: {product.get('sizes', {})}"
+                )
+
+        topping_lines = []
+        for topping in current_data.get("toppings", []):
+            if topping.get("status", "Còn hàng") == "Còn hàng" and topping.get("visible", True):
+                topping_lines.append(
+                    f"- {topping.get('name', 'Topping')}: {topping.get('price', 0):,} VNĐ"
+                )
+
+        product_text = "\n".join(product_lines) or "Chưa có món đang bán."
+        topping_text = "\n".join(topping_lines) or "Chưa có topping đang bán."
+        system_prompt = f"""Bạn là trợ lý tư vấn khách hàng thân thiện của quán B-RedO Oder.
+        Trả lời bằng tiếng Việt, lịch sự, ngắn gọn, dễ hiểu và có thể dùng emoji phù hợp.
+        Nhiệm vụ: tư vấn đồ uống trong menu, gợi ý topping, đường và đá theo sở thích; giải thích giá dựa trên dữ liệu được cung cấp.
+        Quy tắc:
+        - Chỉ nêu món, giá, topping và thông tin được cung cấp bên dưới; không tự bịa khuyến mãi/chính sách.
+        - Giá sản phẩm là giá cơ bản; giá size và topping có thể tính thêm theo dữ liệu.
+        - Nếu thiếu thông tin, nói rõ rằng bạn chưa có dữ liệu và gợi ý hỏi nhân viên.
+        - Không nói rằng bạn đã tạo đơn, thanh toán, sửa hoặc xóa hóa đơn.
+        - Không yêu cầu mật khẩu, API Key, mã OTP hoặc thông tin thẻ ngân hàng.
+
+        MENU ĐANG BÁN:
+        {product_text}
+
+        TOPPING ĐANG BÁN:
+        {topping_text}
+        """
+
+        action_col1, action_col2 = st.columns([1, 3])
+        with action_col1:
+            if st.button("🗑️ Xóa cuộc trò chuyện", key="clear_chatbot_history"):
+                st.session_state.chatbot_messages = []
+                st.rerun()
+        with action_col2:
+            _, configured_model = get_openrouter_settings()
+            st.caption(f"Model đang cấu hình: {configured_model}")
+
+        for chat_message in st.session_state.chatbot_messages:
+            with st.chat_message(chat_message["role"]):
+                st.markdown(chat_message["content"])
+
+        user_prompt = st.chat_input("Ví dụ: Quán có món nào ít ngọt, thanh mát không?")
+        if user_prompt and user_prompt.strip():
+            user_prompt = user_prompt.strip()
+            st.session_state.chatbot_messages.append({"role": "user", "content": user_prompt})
+            with st.chat_message("user"):
+                st.markdown(user_prompt)
+
+            # Giới hạn lịch sử gửi đi để tránh request quá lớn.
+            recent_messages = st.session_state.chatbot_messages[-12:]
+            api_messages = [{"role": "system", "content": system_prompt}] + recent_messages
+            with st.chat_message("assistant"):
+                with st.spinner("🧋 Trợ lý AI đang suy nghĩ..."):
+                    try:
+                        ai_answer = call_openrouter(api_messages)
+                        st.markdown(ai_answer)
+                        st.session_state.chatbot_messages.append(
+                            {"role": "assistant", "content": ai_answer}
+                        )
+                    except RuntimeError as error:
+                        st.error(str(error))
+                    except Exception:
+                        st.error(
+                            "Có lỗi khi xử lý câu hỏi. Hãy kiểm tra Secrets, model và nhật ký ứng dụng."
+                        )
+
 
     # --------------------------------------------------------
     # THÔNG TIN KHÁCH HÀNG
@@ -3255,93 +3344,3 @@ st.sidebar.caption(
 )
 
 # ============================================================
-# CHATBOT AI - TƯ VẤN KHÁCH HÀNG
-# ============================================================
-
-if menu == "🤖 Chatbot AI":
-    st.header("🤖 TRỢ LÝ AI B-REDO ODER")
-    st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
-    st.info(
-        "Trợ lý AI dùng thông tin menu hiện tại để tư vấn. Chatbot không tự tạo đơn, "
-        "không thanh toán và không chỉnh sửa hóa đơn. Giá size/topping có thể được tính thêm."
-    )
-
-    if "chatbot_messages" not in st.session_state:
-        st.session_state.chatbot_messages = []
-
-    current_data = st.session_state.get("data", {})
-    product_lines = []
-    for product in current_data.get("products", []):
-        if product.get("status", "Còn hàng") == "Còn hàng":
-            product_lines.append(
-                f"- {product.get('name', 'Món chưa đặt tên')}; "
-                f"danh mục: {product.get('category', 'Chưa phân loại')}; "
-                f"giá cơ bản: {product.get('price', 0):,} VNĐ; "
-                f"mô tả: {product.get('description', 'Không có mô tả')}; "
-                f"giá cộng thêm theo size: {product.get('sizes', {})}"
-            )
-
-    topping_lines = []
-    for topping in current_data.get("toppings", []):
-        if topping.get("status", "Còn hàng") == "Còn hàng" and topping.get("visible", True):
-            topping_lines.append(
-                f"- {topping.get('name', 'Topping')}: {topping.get('price', 0):,} VNĐ"
-            )
-
-    product_text = "\n".join(product_lines) or "Chưa có món đang bán."
-    topping_text = "\n".join(topping_lines) or "Chưa có topping đang bán."
-    system_prompt = f"""Bạn là trợ lý tư vấn khách hàng thân thiện của quán B-RedO Oder.
-Trả lời bằng tiếng Việt, lịch sự, ngắn gọn, dễ hiểu và có thể dùng emoji phù hợp.
-Nhiệm vụ: tư vấn đồ uống trong menu, gợi ý topping, đường và đá theo sở thích; giải thích giá dựa trên dữ liệu được cung cấp.
-Quy tắc:
-- Chỉ nêu món, giá, topping và thông tin được cung cấp bên dưới; không tự bịa khuyến mãi/chính sách.
-- Giá sản phẩm là giá cơ bản; giá size và topping có thể tính thêm theo dữ liệu.
-- Nếu thiếu thông tin, nói rõ rằng bạn chưa có dữ liệu và gợi ý hỏi nhân viên.
-- Không nói rằng bạn đã tạo đơn, thanh toán, sửa hoặc xóa hóa đơn.
-- Không yêu cầu mật khẩu, API Key, mã OTP hoặc thông tin thẻ ngân hàng.
-
-MENU ĐANG BÁN:
-{product_text}
-
-TOPPING ĐANG BÁN:
-{topping_text}
-"""
-
-    action_col1, action_col2 = st.columns([1, 3])
-    with action_col1:
-        if st.button("🗑️ Xóa cuộc trò chuyện", key="clear_chatbot_history"):
-            st.session_state.chatbot_messages = []
-            st.rerun()
-    with action_col2:
-        _, configured_model = get_openrouter_settings()
-        st.caption(f"Model đang cấu hình: {configured_model}")
-
-    for chat_message in st.session_state.chatbot_messages:
-        with st.chat_message(chat_message["role"]):
-            st.markdown(chat_message["content"])
-
-    user_prompt = st.chat_input("Ví dụ: Quán có món nào ít ngọt, thanh mát không?")
-    if user_prompt and user_prompt.strip():
-        user_prompt = user_prompt.strip()
-        st.session_state.chatbot_messages.append({"role": "user", "content": user_prompt})
-        with st.chat_message("user"):
-            st.markdown(user_prompt)
-
-        # Giới hạn lịch sử gửi đi để tránh request quá lớn.
-        recent_messages = st.session_state.chatbot_messages[-12:]
-        api_messages = [{"role": "system", "content": system_prompt}] + recent_messages
-        with st.chat_message("assistant"):
-            with st.spinner("🧋 Trợ lý AI đang suy nghĩ..."):
-                try:
-                    ai_answer = call_openrouter(api_messages)
-                    st.markdown(ai_answer)
-                    st.session_state.chatbot_messages.append(
-                        {"role": "assistant", "content": ai_answer}
-                    )
-                except RuntimeError as error:
-                    st.error(str(error))
-                except Exception:
-                    st.error(
-                        "Có lỗi khi xử lý câu hỏi. Hãy kiểm tra Secrets, model và nhật ký ứng dụng."
-                    )
-
