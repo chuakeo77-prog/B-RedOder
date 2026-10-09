@@ -3287,6 +3287,53 @@ elif menu == "🧾 Lịch sử hóa đơn":
                         )
 
         st.divider()
+        st.subheader("📦 Sao lưu và tải toàn bộ giao dịch")
+        # Cho phép Admin xuất toàn bộ lịch sử để lưu trữ ngoài ứng dụng.
+        current_history = get_order_history()
+        export_col1, export_col2 = st.columns(2)
+        with export_col1:
+            st.download_button(
+                "📥 TẢI TOÀN BỘ GIAO DỊCH (JSON)",
+                data=json.dumps(current_history, ensure_ascii=False, indent=2).encode("utf-8"),
+                file_name=f"lich_su_giao_dich_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json",
+                key="download_all_transactions_json",
+                use_container_width=True,
+                disabled=not current_history,
+                help="Bản sao lưu đầy đủ gồm thông tin đơn hàng, món, số lượng, giá, thời gian và phương thức thanh toán."
+            )
+        with export_col2:
+            import csv
+            import io
+            csv_buffer = io.StringIO()
+            csv_writer = csv.writer(csv_buffer)
+            csv_writer.writerow(["Mã đơn", "Ngày tạo", "Ngày cập nhật", "Khách hàng", "Món hàng", "Số lượng", "Tổng tiền", "Phương thức thanh toán", "Trạng thái"])
+            for saved_order in current_history:
+                saved_items = saved_order.get("items", [])
+                items_text = "; ".join(
+                    f"{item.get('name', 'Món')} (Size {item.get('size', 'S')}, SL {item.get('quantity', 1)})"
+                    for item in saved_items
+                ) or "Không có món"
+                quantity_total = sum(int(item.get("quantity", 1) or 1) for item in saved_items)
+                csv_writer.writerow([
+                    saved_order.get("order_id", ""), saved_order.get("created_at", ""),
+                    saved_order.get("updated_at", ""), saved_order.get("customer_name", "Khách lẻ"),
+                    items_text, quantity_total, saved_order.get("total", 0),
+                    saved_order.get("payment_method", ""), saved_order.get("status", "")
+                ])
+            st.download_button(
+                "📊 TẢI BẢNG GIAO DỊCH (CSV)",
+                data="\ufeff" + csv_buffer.getvalue(),
+                file_name=f"lich_su_giao_dich_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv; charset=utf-8",
+                key="download_all_transactions_csv",
+                use_container_width=True,
+                disabled=not current_history,
+                help="Mở bằng Excel để lọc, thống kê và lưu trữ giao dịch."
+            )
+
+        st.caption("Lịch sử được ghi vào order_history.json trên môi trường chạy ứng dụng. Nên tải bản sao lưu định kỳ; hệ thống lưu trữ tệp cục bộ có thể không bền vững khi nền tảng triển khai khởi động lại hoặc thay đổi máy chủ.")
+        st.divider()
         if st.button(
             "🗑️ XÓA TOÀN BỘ LỊCH SỬ HÓA ĐƠN",
             type="secondary",
