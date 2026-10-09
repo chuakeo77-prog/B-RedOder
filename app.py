@@ -762,9 +762,13 @@ def load_data():
         data.setdefault("products", [])
         data.setdefault("toppings", [])
 
-        for category in data["categories"]:
-            if category.get("name", "").strip().lower() == "topping":
-                category["name"] = "Nước ngọt"
+        # Giữ nguyên danh mục Topping cũ nếu có; Nước ngọt là danh mục riêng.
+        if not any(c.get("name", "").strip().lower() == "topping" for c in data["categories"]):
+            data["categories"].append({
+                "id": max([int(c.get("id", 0)) for c in data["categories"]] + [0]) + 1,
+                "name": "Topping",
+                "visible": True
+            })
 
         if not any(c.get("name") == "Nước ngọt" for c in data["categories"]):
             data["categories"].append({
@@ -1771,7 +1775,28 @@ elif menu == "🛒 Đặt hàng":
 
                         st.caption(f"Giá Size {size}: {money(current_price)} / ly")
 
-                        selected_toppings = []  # Đã bỏ lựa chọn topping theo yêu cầu.
+                        # Chọn nhiều topping cho từng món; chỉ hiện topping đang bán.
+                        available_toppings = [
+                            topping for topping in st.session_state.data.get("toppings", [])
+                            if topping.get("status", "Còn hàng") == "Còn hàng"
+                            and topping.get("visible", True)
+                        ]
+                        topping_by_name = {
+                            topping.get("name", ""): topping
+                            for topping in available_toppings
+                        }
+                        selected_topping_names = st.multiselect(
+                            "🧋 Topping — chọn nhiều",
+                            options=list(topping_by_name.keys()),
+                            format_func=lambda name: (
+                                f"{name} (+{money(topping_by_name[name].get('price', 0))})"
+                            ),
+                            key=f"multi_toppings_{product['id']}"
+                        )
+                        selected_toppings = [
+                            dict(topping_by_name[name])
+                            for name in selected_topping_names
+                        ]
 
                         notes_options = [
                             "Nhiều sữa",
@@ -2031,7 +2056,34 @@ elif menu == "🛒 Đặt hàng":
                         key=f"edit_ice_{index}"
                     )
 
-                    edit_topping_labels = []  # Không sử dụng topping nữa.
+                    # Cho phép sửa topping đã chọn cùng với các thông tin khác.
+                    available_toppings = [
+                        topping for topping in st.session_state.data.get("toppings", [])
+                        if topping.get("status", "Còn hàng") == "Còn hàng"
+                        and topping.get("visible", True)
+                    ]
+                    edit_topping_by_name = {
+                        topping.get("name", ""): topping
+                        for topping in available_toppings
+                    }
+                    current_topping_names = [
+                        topping.get("name", "")
+                        for topping in current_item.get("toppings", [])
+                        if topping.get("name", "") in edit_topping_by_name
+                    ]
+                    edit_topping_labels = st.multiselect(
+                        "🧋 Topping — chọn nhiều",
+                        options=list(edit_topping_by_name.keys()),
+                        default=current_topping_names,
+                        format_func=lambda name: (
+                            f"{name} (+{money(edit_topping_by_name[name].get('price', 0))})"
+                        ),
+                        key=f"edit_toppings_{index}"
+                    )
+                    edit_toppings = [
+                        dict(edit_topping_by_name[name])
+                        for name in edit_topping_labels
+                    ]
 
                     edit_notes = st.text_area(
                         "💬 Ghi chú",
@@ -2049,7 +2101,7 @@ elif menu == "🛒 Đặt hàng":
                         "quantity": edit_quantity,
                         "sugar": edit_sugar,
                         "ice": edit_ice,
-                        "toppings": [],
+                        "toppings": edit_toppings,
                         "notes": edit_notes.strip()
                     }
                     edit_preview_total = calculate_item_total(edit_preview)
