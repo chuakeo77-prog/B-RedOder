@@ -11,7 +11,7 @@ import requests
 # ============================================================
 
 st.set_page_config(
-    page_title="Order & Bill Trà Sữa",
+    page_title="Order & Bill ",
     page_icon="🧋",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -547,7 +547,7 @@ DEFAULT_DATA = {
 
         {
             "id": 3,
-            "name": "Topping",
+            "name": "NƯỚC NGỌT",
             "visible": True
         }
 
@@ -643,7 +643,50 @@ DEFAULT_DATA = {
                 "M": 5000,
                 "L": 10000
             }
-        }
+        },
+        
+        {
+            "id": 7,
+            "category": "Nước Ngọt",
+            "name": "Sting",
+            "image": "",
+            "price": 15000,
+            "description": "Sting mát cơ thể",
+            "status": "Còn hàng",
+            "sizes": {
+                "S": 0,
+                "M": 5000,
+                "L": 10000
+            }
+        },
+        {
+            "id": 8,
+            "category": "Nước Ngọt",
+            "name": "CoCola",
+            "image": "",
+            "price": 15000,
+            "description": "CoCola mát cơ thể",
+            "status": "Còn hàng",
+            "sizes": {
+                "S": 0,
+                "M": 5000,
+                "L": 10000
+            }
+        },
+        {
+            "id": 10,
+            "category": "Nước Ngọt",
+            "name": "Pepsi",
+            "image": "",
+            "price": 15000,
+            "description": "Pepsi mát cơ thể",
+            "status": "Còn hàng",
+            "sizes": {
+                "S": 0,
+                "M": 5000,
+                "L": 10000
+            }
+        },
 
     ],
 
@@ -1031,7 +1074,7 @@ def admin_logout():
 
     st.session_state.admin_logged_in = False
 
-    st.success("Đã đăng xuất Admin.")
+    st.success("Đã đăng xuất Admin")
 
     st.rerun()
 
@@ -1452,7 +1495,7 @@ elif menu == "🛒 Đặt hàng":
         """,
         unsafe_allow_html=True,
     )
-    with st.expander("🤖 Hỏi trợ lý AI trước khi chọn món 🧋", expanded=False):
+    with st.expander("🤖 Trợ lý AI 🧋", expanded=False):
         st.subheader("🤖 TRỢ LÝ AI B-REDO ODER")
         st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
         st.info(
