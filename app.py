@@ -1417,6 +1417,41 @@ elif menu == "🛒 Đặt hàng":
     # --------------------------------------------------------
     # CHATBOT AI TƯ VẤN TRƯỚC KHI CHỌN MÓN
     # --------------------------------------------------------
+    # CSS chỉ làm rõ màu nền khu vực chat, không thay đổi logic đặt hàng.
+    st.markdown(
+        """
+        <style>
+        /* Bong bóng tin nhắn của chatbot: nền sáng, chữ tương phản cao */
+        div[data-testid="stChatMessage"] {
+            background-color: #FFF5FA !important;
+            border: 1px solid #F3C7DD !important;
+            border-radius: 14px !important;
+            padding: 12px 14px !important;
+            margin-bottom: 10px !important;
+        }
+        div[data-testid="stChatMessage"] p,
+        div[data-testid="stChatMessage"] li,
+        div[data-testid="stChatMessage"] span {
+            color: #3B2430 !important;
+        }
+        /* Khung nhập câu hỏi */
+        div[data-testid="stChatInput"] {
+            background-color: #FFFFFF !important;
+            border: 1px solid #E7A9C8 !important;
+            border-radius: 14px !important;
+        }
+        div[data-testid="stChatInput"] textarea {
+            color: #30212A !important;
+            background-color: #FFFFFF !important;
+        }
+        /* Thẻ thông báo hướng dẫn chatbot */
+        div[data-testid="stAlert"] {
+            border-radius: 12px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
     with st.expander("🤖 Hỏi trợ lý AI trước khi chọn món 🧋", expanded=False):
         st.subheader("🤖 TRỢ LÝ AI B-REDO ODER")
         st.caption("💕 Tư vấn món uống, giá cơ bản, size, topping, đường và đá.")
