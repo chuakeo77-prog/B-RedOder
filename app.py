@@ -1708,79 +1708,6 @@ TOPPING ĐANG BÁN:
             help="Chọn một hoặc nhiều danh mục để hiển thị các món tương ứng."
         )
 
-        # ========================================================
-        # MUA TOPPING RIÊNG - KHÔNG BẮT BUỘC MUA NƯỚC
-        # ========================================================
-        st.divider()
-        with st.expander("🧋 MUA TOPPING RIÊNG — KHÔNG CẦN MUA NƯỚC", expanded=True):
-            st.markdown(
-                "<div class='cute-subtitle'>Chọn topping, nhập số lượng rồi thêm thẳng vào đơn hàng. "
-                "Bạn vẫn có thể chọn topping kèm trà sữa như bình thường.</div>",
-                unsafe_allow_html=True
-            )
-            standalone_toppings = [
-                topping for topping in st.session_state.data.get("toppings", [])
-                if topping.get("status", "Còn hàng") == "Còn hàng"
-                and topping.get("visible", True)
-            ]
-            if not standalone_toppings:
-                st.info("Hiện chưa có topping nào đang bán.")
-            else:
-                topping_options = {
-                    f"{topping.get('name', 'Topping')} • {money(topping.get('price', 0))}": topping
-                    for topping in standalone_toppings
-                }
-                standalone_selected_labels = st.multiselect(
-                    "🍡 Chọn topping muốn mua riêng (có thể chọn nhiều)",
-                    options=list(topping_options.keys()),
-                    key="standalone_topping_selection",
-                    help="Topping sẽ được tính tiền riêng, không cần thêm đồ uống."
-                )
-                standalone_config = []
-                if standalone_selected_labels:
-                    cols = st.columns(min(3, len(standalone_selected_labels)))
-                    for topping_index, topping_label in enumerate(standalone_selected_labels):
-                        topping = topping_options[topping_label]
-                        with cols[topping_index % len(cols)]:
-                            qty = st.number_input(
-                                f"🔢 Số lượng — {topping.get('name', 'Topping')}",
-                                min_value=1,
-                                max_value=100,
-                                value=1,
-                                step=1,
-                                key=f"standalone_topping_qty_{topping.get('id', topping_index)}"
-                            )
-                        standalone_config.append({
-                            "id": topping.get("id"),
-                            "name": topping.get("name", "Topping"),
-                            "price": float(topping.get("price", 0) or 0),
-                            "size": "—",
-                            "size_price": 0,
-                            "quantity": int(qty),
-                            "sugar": "—",
-                            "ice": "—",
-                            "toppings": [],
-                            "notes": "Mua topping riêng",
-                            "item_type": "standalone_topping",
-                        })
-                    standalone_total = sum(
-                        calculate_item_total(item) for item in standalone_config
-                    )
-                    st.markdown(
-                        f"<div class='total-box'><div>🍡 Tổng topping mua riêng</div>"
-                        f"<div class='total-money'>{money(standalone_total)}</div></div>",
-                        unsafe_allow_html=True
-                    )
-                    if st.button(
-                        "🍡 THÊM TOPPING RIÊNG VÀO ĐƠN",
-                        type="primary",
-                        use_container_width=True,
-                        key="add_standalone_toppings"
-                    ):
-                        st.session_state.cart.extend(standalone_config)
-                        st.success("Đã thêm topping mua riêng vào đơn hàng!")
-                        st.rerun()
-
         available_products = [
             product
             for product in st.session_state.data["products"]
@@ -1859,13 +1786,8 @@ TOPPING ĐANG BÁN:
                             # Nước ngọt chỉ có lượng đá, ghi chú nhanh và ghi chú riêng.
                             ice = st.selectbox(
                                 "🧊 Lượng đá",
-                                [100, 70, 50, 30, 10, 0],
-                                format_func=lambda value: (
-                                    "Không đá" if value == 0 else
-                                    "Ít đá" if value <= 30 else
-                                    "Vừa đá" if value <= 70 else
-                                    "Nhiều đá"
-                                ),
+                                [100, 80, 50, 20, 10, 0],
+                                format_func=lambda value: f"{value}%",
                                 key=f"multi_ice_{product['id']}"
                             )
                             size = "S"
@@ -2010,6 +1932,80 @@ TOPPING ĐANG BÁN:
                     st.rerun()
             else:
                 st.info("Chưa chọn món. Hãy chọn nhiều món ở ô phía trên để cấu hình.")
+
+    # ========================================================
+    # MUA TOPPING RIÊNG - KHÔNG BẮT BUỘC MUA NƯỚC
+    # ========================================================
+    st.divider()
+    with st.expander("🧋 MUA TOPPING RIÊNG — KHÔNG CẦN MUA NƯỚC", expanded=True):
+        st.markdown(
+            "<div class='cute-subtitle'>Chọn topping, nhập số lượng rồi thêm thẳng vào đơn hàng. "
+            "Bạn vẫn có thể chọn topping kèm trà sữa như bình thường.</div>",
+            unsafe_allow_html=True
+        )
+        standalone_toppings = [
+            topping for topping in st.session_state.data.get("toppings", [])
+            if topping.get("status", "Còn hàng") == "Còn hàng"
+            and topping.get("visible", True)
+        ]
+        if not standalone_toppings:
+            st.info("Hiện chưa có topping nào đang bán.")
+        else:
+            topping_options = {
+                f"{topping.get('name', 'Topping')} • {money(topping.get('price', 0))}": topping
+                for topping in standalone_toppings
+            }
+            standalone_selected_labels = st.multiselect(
+                "🍡 Chọn topping muốn mua riêng (có thể chọn nhiều)",
+                options=list(topping_options.keys()),
+                key="standalone_topping_selection",
+                help="Topping sẽ được tính tiền riêng, không cần thêm đồ uống."
+            )
+            standalone_config = []
+            if standalone_selected_labels:
+                cols = st.columns(min(3, len(standalone_selected_labels)))
+                for topping_index, topping_label in enumerate(standalone_selected_labels):
+                    topping = topping_options[topping_label]
+                    with cols[topping_index % len(cols)]:
+                        qty = st.number_input(
+                            f"🔢 Số lượng — {topping.get('name', 'Topping')}",
+                            min_value=1,
+                            max_value=100,
+                            value=1,
+                            step=1,
+                            key=f"standalone_topping_qty_{topping.get('id', topping_index)}"
+                        )
+                    standalone_config.append({
+                        "id": topping.get("id"),
+                        "name": topping.get("name", "Topping"),
+                        "price": float(topping.get("price", 0) or 0),
+                        "size": "—",
+                        "size_price": 0,
+                        "quantity": int(qty),
+                        "sugar": "—",
+                        "ice": "—",
+                        "toppings": [],
+                        "notes": "Mua topping riêng",
+                        "item_type": "standalone_topping",
+                    })
+                standalone_total = sum(
+                    calculate_item_total(item) for item in standalone_config
+                )
+                st.markdown(
+                    f"<div class='total-box'><div>🍡 Tổng topping mua riêng</div>"
+                    f"<div class='total-money'>{money(standalone_total)}</div></div>",
+                    unsafe_allow_html=True
+                )
+                if st.button(
+                    "🍡 THÊM TOPPING RIÊNG VÀO ĐƠN",
+                    type="primary",
+                    use_container_width=True,
+                    key="add_standalone_toppings"
+                ):
+                    st.session_state.cart.extend(standalone_config)
+                    st.success("Đã thêm topping mua riêng vào đơn hàng!")
+                    st.rerun()
+
 
     # ========================================================
     # CHI TIẾT ĐƠN HÀNG
