@@ -1831,8 +1831,6 @@ TOPPING ĐANG BÁN:
                                     "🧊 Lượng đá",
                                     [100, 70, 50, 30, 10, 0],
                                     format_func=lambda value: f"{value}%",
-                                    key=f"multi_sugar_{product['id']}"
-                                ),
                                     key=f"multi_ice_{product['id']}"
                                 )
 
