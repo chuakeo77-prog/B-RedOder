@@ -1830,12 +1830,9 @@ TOPPING ĐANG BÁN:
                                 ice = st.selectbox(
                                     "🧊 Lượng đá",
                                     [100, 70, 50, 30, 10, 0],
-                                    format_func=lambda value: (
-                                        "Không đá" if value == 0 else
-                                        "Ít đá" if value <= 30 else
-                                        "Vừa đá" if value <= 70 else
-                                        "Nhiều đá"
-                                    ),
+                                    format_func=lambda value: f"{value}%",
+                                    key=f"multi_sugar_{product['id']}"
+                                ),
                                     key=f"multi_ice_{product['id']}"
                                 )
 
