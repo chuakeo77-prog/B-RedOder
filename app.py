@@ -76,10 +76,7 @@ ADMIN_PASSWORD = get_admin_password()
 # ============================================================
 # KẾT NỐI CHATBOT AI QUA OPENROUTER
 # ============================================================
-# Thiết lập trong Streamlit Cloud > App > Settings > Secrets:
-# OPENROUTER_API_KEY = "..."
-# OPENROUTER_MODEL = "openrouter/auto"
-# Không ghi API Key trực tiếp trong mã nguồn hoặc GitHub.
+
 
 
 def get_openrouter_settings():
