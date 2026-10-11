@@ -4,7 +4,7 @@ import json
 import os
 import html
 import hashlib
-import requests
+import requests tay nguyen
 
 # ============================================================
 # CẤU HÌNH TRANG
