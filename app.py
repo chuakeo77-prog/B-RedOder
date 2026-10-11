@@ -76,7 +76,10 @@ ADMIN_PASSWORD = get_admin_password()
 # ============================================================
 # KẾT NỐI CHATBOT AI QUA OPENROUTER
 # ============================================================
-
+# Thiết lập trong Streamlit Cloud > App > Settings > Secrets:
+# OPENROUTER_API_KEY = "..."
+# OPENROUTER_MODEL = "openrouter/auto"
+# Không ghi API Key trực tiếp trong mã nguồn hoặc GitHub.
 
 
 def get_openrouter_settings():
@@ -858,6 +861,9 @@ if "cart" not in st.session_state:
 
     st.session_state.cart = []
 
+if "voucher_code" not in st.session_state:
+    st.session_state.voucher_code = ""
+
 
 if "customer_name" not in st.session_state:
 
@@ -946,12 +952,47 @@ def calculate_item_total(item):
 # TÍNH TỔNG BILL
 # ============================================================
 
-def calculate_cart_total():
+# Voucher mặc định; Admin có thể thay đổi trực tiếp các mã trong VOUCHERS.
+# discount_type = "percent" hoặc "fixed". Giá trị giảm không vượt quá tiền hàng.
+VOUCHERS = {
+    "BREDO10": {"discount_type": "percent", "value": 10, "description": "Giảm 10%"},
+    "BREDO20": {"discount_type": "percent", "value": 20, "description": "Giảm 20%"},
+    "GIAM5000": {"discount_type": "fixed", "value": 5000, "description": "Giảm 5.000 VNĐ"},
+}
 
-    return sum(
-        calculate_item_total(item)
-        for item in st.session_state.cart
-    )
+
+def calculate_cart_subtotal():
+    """Tổng tiền hàng trước khi áp dụng voucher."""
+    return sum(calculate_item_total(item) for item in st.session_state.cart)
+
+
+def get_voucher_result(code=None, subtotal=None):
+    """Trả về mã hợp lệ, tiền giảm và thông báo."""
+    code = (code if code is not None else st.session_state.get("voucher_code", "")).strip().upper()
+    subtotal = calculate_cart_subtotal() if subtotal is None else max(0, float(subtotal))
+    if not code:
+        return {"valid": False, "code": "", "discount": 0, "description": ""}
+    voucher = VOUCHERS.get(code)
+    if not voucher:
+        return {"valid": False, "code": code, "discount": 0, "description": ""}
+    if voucher["discount_type"] == "percent":
+        discount = subtotal * float(voucher["value"]) / 100
+    else:
+        discount = float(voucher["value"])
+    discount = min(subtotal, max(0, discount))
+    return {
+        "valid": True,
+        "code": code,
+        "discount": int(discount),
+        "description": voucher.get("description", "Ưu đãi voucher"),
+    }
+
+
+def calculate_cart_total():
+    """Tổng thanh toán sau khi trừ voucher hợp lệ."""
+    subtotal = calculate_cart_subtotal()
+    voucher = get_voucher_result(subtotal=subtotal)
+    return max(0, subtotal - voucher["discount"])
 
 
 # ============================================================
@@ -989,10 +1030,15 @@ def find_order_history(order_id):
 
 
 def snapshot_current_order():
+    subtotal = calculate_cart_subtotal()
+    voucher = get_voucher_result(subtotal=subtotal)
     return {
         "items": json.loads(json.dumps(st.session_state.cart, ensure_ascii=False)),
         "customer_name": st.session_state.customer_name or "Khách lẻ",
-        "total": calculate_cart_total(),
+        "subtotal": subtotal,
+        "voucher_code": voucher["code"] if voucher["valid"] else "",
+        "discount": voucher["discount"],
+        "total": max(0, subtotal - voucher["discount"]),
     }
 
 
@@ -1011,6 +1057,9 @@ def save_paid_order(payment_method="Tiền mặt"):
         existing.update({
             "items": snapshot["items"],
             "customer_name": snapshot["customer_name"],
+            "subtotal": snapshot["subtotal"],
+            "voucher_code": snapshot["voucher_code"],
+            "discount": snapshot["discount"],
             "total": snapshot["total"],
             "payment_method": payment_method,
             "status": "Đã thanh toán",
@@ -1023,6 +1072,9 @@ def save_paid_order(payment_method="Tiền mặt"):
             "updated_at": now,
             "customer_name": snapshot["customer_name"],
             "items": snapshot["items"],
+            "subtotal": snapshot["subtotal"],
+            "voucher_code": snapshot["voucher_code"],
+            "discount": snapshot["discount"],
             "total": snapshot["total"],
             "payment_method": payment_method,
             "status": "Đã thanh toán",
@@ -1037,6 +1089,7 @@ def load_order_for_edit(order):
     st.session_state.order_id = order["order_id"]
     st.session_state.customer_name = order.get("customer_name", "")
     st.session_state.cart = json.loads(json.dumps(order.get("items", []), ensure_ascii=False))
+    st.session_state.voucher_code = order.get("voucher_code", "")
     st.session_state.editing_order_id = order["order_id"]
 
 
@@ -1054,6 +1107,7 @@ def reset_order():
     st.session_state.cart = []
 
     st.session_state.customer_name = ""
+    st.session_state.voucher_code = ""
     st.session_state.editing_order_id = None
     st.session_state.editing_cart_index = None
 
@@ -1233,10 +1287,12 @@ def create_txt_invoice():
 
         lines.append("-" * 60)
 
-    lines.append(
-        f"TỔNG THANH TOÁN: "
-        f"{money(calculate_cart_total())}"
-    )
+    subtotal = calculate_cart_subtotal()
+    voucher_result = get_voucher_result(subtotal=subtotal)
+    lines.append(f"Tạm tính: {money(subtotal)}")
+    lines.append(f"Mã voucher: {voucher_result['code'] if voucher_result['valid'] else 'Không'}")
+    lines.append(f"Tiền giảm: {money(voucher_result['discount'])}")
+    lines.append(f"TỔNG THANH TOÁN: {money(max(0, subtotal - voucher_result['discount']))}")
 
     lines.append("=" * 60)
 
@@ -1405,10 +1461,10 @@ th {{
 </table>
 
 <div class="total">
-
-TỔNG THANH TOÁN:
-{money(calculate_cart_total())}
-
+Tạm tính: {money(calculate_cart_subtotal())}<br>
+Voucher: {html.escape(get_voucher_result()["code"] if get_voucher_result()["valid"] else "Không")}<br>
+Tiền giảm: {money(get_voucher_result()["discount"])}<br>
+TỔNG THANH TOÁN: {money(calculate_cart_total())}
 </div>
 
 <br>
@@ -2266,7 +2322,39 @@ TOPPING ĐANG BÁN:
                             st.session_state.editing_cart_index = None
                             st.rerun()
 
-        total = calculate_cart_total()
+        # --------------------------------------------------------
+        # VOUCHER / MÃ GIẢM GIÁ CHO KHÁCH HÀNG
+        # --------------------------------------------------------
+        st.markdown("### 🎟️ VOUCHER ƯU ĐÃI")
+        st.caption("Nhập mã giảm giá để được trừ tiền trực tiếp vào hóa đơn.")
+        voucher_col1, voucher_col2 = st.columns([3, 1])
+        with voucher_col1:
+            st.text_input(
+                "Mã voucher",
+                key="voucher_code",
+                placeholder="Ví dụ: BREDO10",
+                help="Mã không phân biệt chữ hoa/chữ thường."
+            )
+        with voucher_col2:
+            st.write("")
+            st.write("")
+            if st.button("🎁 ÁP DỤNG MÃ", key="apply_voucher_button", use_container_width=True):
+                st.session_state.voucher_check_requested = True
+
+        subtotal = calculate_cart_subtotal()
+        voucher_result = get_voucher_result(subtotal=subtotal)
+        if st.session_state.get("voucher_code", "").strip():
+            if voucher_result["valid"]:
+                st.success(
+                    f"✅ Đã áp dụng {voucher_result['code']} — "
+                    f"{voucher_result['description']}. Tiết kiệm {money(voucher_result['discount'])}."
+                )
+            else:
+                st.error("❌ Mã voucher không hợp lệ. Vui lòng kiểm tra và nhập lại.")
+        else:
+            st.info("Mã thử nghiệm: **BREDO10** giảm 10%, **BREDO20** giảm 20%, **GIAM5000** giảm 5.000 VNĐ.")
+
+        total = max(0, subtotal - voucher_result["discount"])
 
 
         st.markdown(
@@ -2274,6 +2362,8 @@ TOPPING ĐANG BÁN:
             <div class="total-box">
                 <div style="color:#475569;">👤 Khách hàng: <b style="color:#0F172A;">{html.escape(st.session_state.customer_name or 'Khách lẻ')}</b></div>
                 <div style="margin-top:8px; color:#475569;">🧾 Số món: <b style="color:#0F172A;">{len(st.session_state.cart)}</b></div>
+                <div style="margin-top:8px; color:#475569;">Tạm tính: <b style="color:#0F172A;">{money(subtotal)}</b></div>
+                <div style="margin-top:5px; color:#047857;">Voucher ({html.escape(voucher_result["code"] or "Chưa áp dụng")}): <b>-{money(voucher_result["discount"])}</b></div>
                 <div class="total-money">💰 {money(total)}</div>
                 <div style="color:#475569;">TỔNG SỐ TIỀN CẦN THANH TOÁN</div>
             </div>
@@ -3647,3 +3737,4 @@ st.sidebar.caption(
 )
 
 # ============================================================
+
