@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import datetime
 import json
 import os
+import copy
 import html
 import hashlib
 import requests
@@ -29,8 +30,9 @@ if os.path.exists("logo.jpg"):
             "logo.jpg",
             use_container_width=True
         )
-DATA_FILE = "menu_data.json"
-ORDER_HISTORY_FILE = "order_history.json"
+# Toàn bộ dữ liệu menu và lịch sử hóa đơn được lưu trong MySQL.
+# Cấu hình kết nối tại Streamlit Secrets (mục [mysql]) hoặc biến môi trường.
+
 
 
 # ============================================================
@@ -695,49 +697,151 @@ DEFAULT_DATA = {
 
 
 # ============================================================
-# ĐỌC DỮ LIỆU
+# MYSQL: KẾT NỐI, TẠO BẢNG VÀ LƯU MENU
 # ============================================================
 
-def load_data():
 
-    if not os.path.exists(DATA_FILE):
+def get_mysql_config():
+    """Lấy cấu hình MySQL từ Streamlit Secrets hoặc biến môi trường."""
+    try:
+        cfg = st.secrets.get("mysql", {})
+    except Exception:
+        cfg = {}
 
-        with open(DATA_FILE, "w", encoding="utf-8") as file:
+    def pick(secret_key, env_key, default=""):
+        value = cfg.get(secret_key, "") if hasattr(cfg, "get") else ""
+        if value in (None, ""):
+            value = os.getenv(env_key, default)
+        return value
 
-            json.dump(
-                DEFAULT_DATA,
-                file,
-                ensure_ascii=False,
-                indent=4
-            )
+    host = pick("host", "MYSQL_HOST", "")
+    user = pick("user", "MYSQL_USER", "")
+    password = pick("password", "MYSQL_PASSWORD", "")
+    database = pick("database", "MYSQL_DATABASE", "")
+    port = pick("port", "MYSQL_PORT", 3306)
 
-        return DEFAULT_DATA
+    missing = [name for name, value in (
+        ("host", host), ("user", user), ("password", password), ("database", database)
+    ) if not str(value).strip()]
+    if missing:
+        raise RuntimeError(
+            "Chưa cấu hình MySQL. Hãy thêm [mysql] gồm host, user, password, database "
+            "vào Streamlit Secrets; xem hướng dẫn sau phần code."
+        )
 
     try:
+        port = int(port)
+    except (TypeError, ValueError):
+        port = 3306
 
-        with open(DATA_FILE, "r", encoding="utf-8") as file:
+    return {
+        "host": str(host).strip(),
+        "user": str(user).strip(),
+        "password": str(password),
+        "database": str(database).strip(),
+        "port": port,
+        "connection_timeout": 10,
+        "autocommit": False,
+    }
 
-            return json.load(file)
 
+def get_db_connection():
+    """Mở kết nối MySQL; không dùng bất kỳ tệp JSON cục bộ nào để lưu dữ liệu."""
+    try:
+        import mysql.connector
+        return mysql.connector.connect(**get_mysql_config())
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(
+            "Không kết nối được MySQL. Hãy kiểm tra host, port, user, password, database "
+            "và quyền truy cập mạng của máy chủ MySQL. Chi tiết: " + str(exc)[:250]
+        ) from exc
+
+
+def init_db():
+    """Tạo các bảng cần thiết và chèn menu mặc định nếu bảng menu còn trống."""
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_menu_data (
+                id TINYINT UNSIGNED NOT NULL PRIMARY KEY,
+                data_json LONGTEXT NOT NULL,
+                updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+        """)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS order_history (
+                order_id VARCHAR(64) NOT NULL PRIMARY KEY,
+                created_at VARCHAR(40) NOT NULL,
+                updated_at VARCHAR(40) NOT NULL,
+                customer_name VARCHAR(255) NOT NULL DEFAULT 'Khách lẻ',
+                items_json LONGTEXT NOT NULL,
+                total DECIMAL(15,2) NOT NULL DEFAULT 0,
+                payment_method VARCHAR(100) NOT NULL DEFAULT '',
+                status VARCHAR(100) NOT NULL DEFAULT '',
+                saved_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_order_created_at (created_at)
+            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+        """)
+        cursor.execute("SELECT id FROM app_menu_data WHERE id = 1")
+        if cursor.fetchone() is None:
+            cursor.execute(
+                "INSERT INTO app_menu_data (id, data_json) VALUES (1, %s)",
+                (json.dumps(DEFAULT_DATA, ensure_ascii=False),)
+            )
+        conn.commit()
+        cursor.close()
     except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
-        return DEFAULT_DATA
 
+def load_data():
+    """Đọc danh mục, sản phẩm và topping từ MySQL."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT data_json FROM app_menu_data WHERE id = 1")
+        row = cursor.fetchone()
+        cursor.close()
+        if not row:
+            return copy.deepcopy(DEFAULT_DATA)
+        data = json.loads(row[0])
+        if not isinstance(data, dict):
+            raise ValueError("Dữ liệu menu trong MySQL không đúng định dạng.")
+        data.setdefault("categories", [])
+        data.setdefault("products", [])
+        data.setdefault("toppings", [])
+        return data
+    finally:
+        conn.close()
 
-# ============================================================
-# LƯU DỮ LIỆU
-# ============================================================
 
 def save_data():
-
-    with open(DATA_FILE, "w", encoding="utf-8") as file:
-
-        json.dump(
-            st.session_state.data,
-            file,
-            ensure_ascii=False,
-            indent=4
+    """Lưu toàn bộ thay đổi menu vào MySQL."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO app_menu_data (id, data_json) VALUES (1, %s) "
+            "ON DUPLICATE KEY UPDATE data_json = VALUES(data_json)",
+            (json.dumps(st.session_state.data, ensure_ascii=False),)
         )
+        conn.commit()
+        cursor.close()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 # ============================================================
@@ -850,26 +954,82 @@ def calculate_cart_total():
 
 
 # ============================================================
-# LỊCH SỬ HÓA ĐƠN / THANH TOÁN
+# LỊCH SỬ HÓA ĐƠN / THANH TOÁN — MYSQL
 # ============================================================
 
+
 def load_order_history():
-
-    if not os.path.exists(ORDER_HISTORY_FILE):
-        return []
-
+    """Đọc toàn bộ hóa đơn đã lưu trong MySQL."""
+    init_db()
+    conn = get_db_connection()
     try:
-        with open(ORDER_HISTORY_FILE, "r", encoding="utf-8") as file:
-            data = json.load(file)
-            return data if isinstance(data, list) else []
-    except Exception:
-        return []
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(
+            "SELECT order_id, created_at, updated_at, customer_name, items_json, "
+            "total, payment_method, status FROM order_history ORDER BY saved_at DESC, created_at DESC"
+        )
+        rows = cursor.fetchall()
+        cursor.close()
+        history = []
+        for row in rows:
+            try:
+                items = json.loads(row.get("items_json") or "[]")
+            except (ValueError, TypeError):
+                items = []
+            history.append({
+                "order_id": row.get("order_id", ""),
+                "created_at": row.get("created_at", ""),
+                "updated_at": row.get("updated_at", ""),
+                "customer_name": row.get("customer_name", "Khách lẻ"),
+                "items": items if isinstance(items, list) else [],
+                "total": float(row.get("total") or 0),
+                "payment_method": row.get("payment_method", ""),
+                "status": row.get("status", ""),
+            })
+        return history
+    finally:
+        conn.close()
 
 
 def save_order_history(history):
-
-    with open(ORDER_HISTORY_FILE, "w", encoding="utf-8") as file:
-        json.dump(history, file, ensure_ascii=False, indent=4)
+    """Đồng bộ danh sách hóa đơn vào MySQL trong một transaction."""
+    init_db()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        # Đồng bộ theo đúng hành vi cũ: danh sách truyền vào là lịch sử đầy đủ.
+        cursor.execute("DELETE FROM order_history")
+        for order in history:
+            cursor.execute("""
+                INSERT INTO order_history
+                    (order_id, created_at, updated_at, customer_name, items_json,
+                     total, payment_method, status)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    created_at = VALUES(created_at),
+                    updated_at = VALUES(updated_at),
+                    customer_name = VALUES(customer_name),
+                    items_json = VALUES(items_json),
+                    total = VALUES(total),
+                    payment_method = VALUES(payment_method),
+                    status = VALUES(status)
+            """, (
+                str(order.get("order_id", "")),
+                str(order.get("created_at", "")),
+                str(order.get("updated_at", order.get("created_at", ""))),
+                str(order.get("customer_name", "Khách lẻ"))[:255],
+                json.dumps(order.get("items", []), ensure_ascii=False),
+                float(order.get("total", 0) or 0),
+                str(order.get("payment_method", ""))[:100],
+                str(order.get("status", ""))[:100],
+            ))
+        conn.commit()
+        cursor.close()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
 def get_order_history():
@@ -885,7 +1045,7 @@ def find_order_history(order_id):
 
 def snapshot_current_order():
     return {
-        "items": json.loads(json.dumps(st.session_state.cart, ensure_ascii=False)),
+        "items": copy.deepcopy(st.session_state.cart),
         "customer_name": st.session_state.customer_name or "Khách lẻ",
         "total": calculate_cart_total(),
     }
@@ -931,7 +1091,7 @@ def save_paid_order(payment_method="Tiền mặt"):
 def load_order_for_edit(order):
     st.session_state.order_id = order["order_id"]
     st.session_state.customer_name = order.get("customer_name", "")
-    st.session_state.cart = json.loads(json.dumps(order.get("items", []), ensure_ascii=False))
+    st.session_state.cart = copy.deepcopy(order.get("items", []))
     st.session_state.editing_order_id = order["order_id"]
 
 
@@ -3332,7 +3492,7 @@ elif menu == "🧾 Lịch sử hóa đơn":
                 help="Mở bằng Excel để lọc, thống kê và lưu trữ giao dịch."
             )
 
-        st.caption("Lịch sử được ghi vào order_history.json trên môi trường chạy ứng dụng. Nên tải bản sao lưu định kỳ; hệ thống lưu trữ tệp cục bộ có thể không bền vững khi nền tảng triển khai khởi động lại hoặc thay đổi máy chủ.")
+        st.caption("Menu và lịch sử hóa đơn được lưu trực tiếp trong MySQL, không phụ thuộc tệp JSON cục bộ.")
         st.divider()
         if st.button(
             "🗑️ XÓA TOÀN BỘ LỊCH SỬ HÓA ĐƠN",
