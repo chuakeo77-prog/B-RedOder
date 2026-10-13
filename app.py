@@ -85,16 +85,34 @@ ADMIN_PASSWORD = get_admin_password()
 
 
 def get_openrouter_settings():
-    """Đọc API Key và model từ Streamlit Secrets."""
-    try:
-        api_key = str(st.secrets.get("OPENROUTER_API_KEY", "")).strip()
-    except Exception:
-        api_key = ""
+    """Đọc cấu hình OpenRouter từ Secrets; hỗ trợ cả khóa cấp cao nhất
+    và trường hợp người dùng vô tình đặt chúng bên trong [admin].
+    Cách khuyến nghị vẫn là đặt OPENROUTER_API_KEY ở cấp cao nhất.
+    """
+    api_key = ""
+    model = "openrouter/auto"
 
     try:
-        model = str(st.secrets.get("OPENROUTER_MODEL", "openrouter/auto")).strip()
+        api_key = str(st.secrets.get("OPENROUTER_API_KEY", "") or "").strip()
+        model = str(st.secrets.get("OPENROUTER_MODEL", "openrouter/auto") or "openrouter/auto").strip()
     except Exception:
-        model = "openrouter/auto"
+        pass
+
+    # Tương thích với cấu hình cũ nếu các khóa bị đặt bên trong [admin].
+    try:
+        admin_cfg = st.secrets.get("admin", {})
+        if not api_key and hasattr(admin_cfg, "get"):
+            api_key = str(admin_cfg.get("OPENROUTER_API_KEY", "") or "").strip()
+        if (not model or model == "openrouter/auto") and hasattr(admin_cfg, "get"):
+            model = str(admin_cfg.get("OPENROUTER_MODEL", "openrouter/auto") or "openrouter/auto").strip()
+    except Exception:
+        pass
+
+    # Cho phép dùng biến môi trường nếu chạy ngoài Streamlit Cloud.
+    if not api_key:
+        api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not model or model == "openrouter/auto":
+        model = os.getenv("OPENROUTER_MODEL", "openrouter/auto").strip()
 
     return api_key, model or "openrouter/auto"
 
@@ -3586,3 +3604,4 @@ st.sidebar.caption(
 )
 
 # ============================================================
+
