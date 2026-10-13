@@ -764,16 +764,24 @@ def get_mysql_config():
 
 
 def get_db_connection():
-    """Mở kết nối MySQL; không dùng bất kỳ tệp JSON cục bộ nào để lưu dữ liệu."""
+    """Mở kết nối MySQL; thông báo lỗi cụ thể nhưng không tiết lộ mật khẩu."""
+    import mysql.connector
+    config = get_mysql_config()
     try:
-        import mysql.connector
-        return mysql.connector.connect(**get_mysql_config())
-    except RuntimeError:
-        raise
-    except Exception as exc:
+        return mysql.connector.connect(**config)
+    except mysql.connector.Error as exc:
+        # Ghi nguyên nhân vào log Streamlit để chẩn đoán; config không chứa mật khẩu trong log.
+        safe_config = {
+            "host": config.get("host"),
+            "port": config.get("port"),
+            "user": config.get("user"),
+            "database": config.get("database"),
+        }
+        print(f"MySQL connection error: {type(exc).__name__}: {exc}; config={safe_config}")
         raise RuntimeError(
-            "Không kết nối được MySQL. Hãy kiểm tra host, port, user, password, database "
-            "và quyền truy cập mạng của máy chủ MySQL. Chi tiết: " + str(exc)[:250]
+            f"Không kết nối được MySQL ({type(exc).__name__}). Chi tiết: {str(exc)[:400]}. "
+            "Hãy kiểm tra host/port, tài khoản và mật khẩu, tên database, quyền truy cập "
+            "từ Streamlit Cloud và yêu cầu SSL của nhà cung cấp."
         ) from exc
 
 
@@ -867,8 +875,18 @@ def save_data():
 # ============================================================
 
 if "data" not in st.session_state:
-
-    st.session_state.data = load_data()
+    try:
+        st.session_state.data = load_data()
+    except Exception as exc:
+        st.error("Ứng dụng chưa thể khởi động vì không kết nối được cơ sở dữ liệu MySQL.")
+        st.code(str(exc))
+        st.info(
+            "Mở Streamlit Cloud → Manage app → Settings → Secrets. Kiểm tra mục [mysql] "
+            "có host, port, user, password và database đúng theo nhà cung cấp MySQL. "
+            "Máy chủ phải cho phép kết nối từ bên ngoài; không dùng localhost nếu MySQL "
+            "không chạy cùng môi trường Streamlit."
+        )
+        st.stop()
 
 
 if "cart" not in st.session_state:
@@ -3604,4 +3622,3 @@ st.sidebar.caption(
 )
 
 # ============================================================
-
